@@ -1,0 +1,72 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:macro name="sonar_single_beam" params="namespace suffix parent_link topic *origin">
+
+    <!-- joint to Sonar link -->
+    <joint name="${namespace}_sonar_single_beam${suffix}_joint" type="fixed">
+      <parent link="${parent_link}" />
+      <child link="${namespace}/sonar_single_beam${suffix}_link" />
+      <xacro:insert_block name="origin" />
+    </joint>
+
+    <link name="${namespace}/sonar_single_beam${suffix}_link">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="1" />
+        <!-- Mark only - based on cylinder -->
+        <inertia ixx="0.1" ixy="0" ixz="0" iyy="0.1" iyz="0" izz="0.1" />
+      </inertial>
+      <collision name="collision">
+        <origin xyz="-0.08 0 0" rpy="0 1.5708 0"/>
+        <geometry>
+          <cylinder length="0.28" radius="0.07"/>
+        </geometry>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh filename="file://$(find nps_uw_sensors)/meshes/blueview_p900/p900.dae"/>
+        </geometry>
+      </visual>
+    </link>
+
+  <gazebo reference="${namespace}/sonar_single_beam${suffix}_link">
+
+    <selfCollide>false</selfCollide>
+ 
+    <sensor type="gpu_ray" name="ray_sensor">
+      <always_on>true</always_on>
+      <update_rate>15.0</update_rate>
+      <pose>0 0 0 0 0 0</pose>
+      <visualize>true</visualize>
+      <ray>
+        <scan>
+          <horizontal>
+            <samples>3</samples>
+            <resolution>1</resolution>            
+            <min_angle>-0.1</min_angle>
+            <max_angle>0.1</max_angle>                        
+          </horizontal>        
+          <vertical>            
+            <samples>1</samples>
+            <resolution>1</resolution>            
+            <min_angle>0</min_angle>
+            <max_angle>0</max_angle>                        
+          </vertical>          
+        </scan>
+
+        <range>
+          <min>0.1</min>
+          <max>10.0</max>
+        </range>
+      </ray>
+
+      <plugin name="nps_gpu_sonar_single_beam_plugin" filename="libnps_gazebo_ros_gpu_sonar_single_beam_plugin.so">
+        <robotNamespace>${namespace}</robotNamespace>
+        <frameName>${namespace}/${topic}${suffix}_link</frameName>
+        <topicName>${topic}${suffix}_sonar_range</topicName>
+      </plugin>
+    </sensor>
+  </gazebo>
+  </xacro:macro>
+</robot>
+

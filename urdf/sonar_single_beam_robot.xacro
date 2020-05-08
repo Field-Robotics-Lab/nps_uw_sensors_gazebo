@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<robot name="sonar_single_beam_robot"
+       xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:include filename="$(find nps_uw_sensors)/urdf/sonar_single_beam.xacro" />
+
+  <link name="world"/>
+
+  <xacro:sonar_single_beam
+            namespace="sonar_single_beam_robot"
+            suffix="1"
+            parent_link="world"
+            topic="sonar_single_beam">
+    <origin xyz="2.1 1.0 1.0" rpy="0 0 1.5709"/>
+  </xacro:sonar_single_beam>
+
+</robot>
+
