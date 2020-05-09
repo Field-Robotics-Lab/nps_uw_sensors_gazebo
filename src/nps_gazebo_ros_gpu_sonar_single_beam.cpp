@@ -46,7 +46,7 @@
 
 #include <gazebo_plugins/gazebo_ros_utils.h>
 
-#include "gazebo_plugins/nps_gazebo_ros_gpu_sonar_single_beam.h"
+#include "nps_uw_sensors_gazebo/nps_gazebo_ros_gpu_sonar_single_beam.h"
 
 namespace gazebo
 {
