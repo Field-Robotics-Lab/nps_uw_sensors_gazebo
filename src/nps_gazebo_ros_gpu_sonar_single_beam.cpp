@@ -250,6 +250,7 @@ void NpsGazeboRosGpuSingleBeamSonar::OnScan(ConstLaserScanStampedPtr &_msg)
   auto intensity_it = _msg->scan().intensities().begin();
   while (range_it != _msg->scan().ranges().end())
   {
+    // Andi is going to put some code here to implement sonar eqn's.
     // sum of f(intensity, angle)
     intensity += *range_it * cos(10.0 * angle);
     // min of range
