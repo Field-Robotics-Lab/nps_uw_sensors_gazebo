@@ -11,19 +11,20 @@
         </geometry>
       </visual>
       <collision name="3dad_sl3_collision">
+      <pose>0 0 -0.035 0 1.570796 1.570796</pose>
         <geometry>
           <cylinder>
-            <radius>0.055</radius>
-            <length>0.075</length>
+            <radius>0.105</radius>
+            <length>0.355</length>
           </cylinder>
         </geometry>
       </collision>
       <inertial>
         <mass>1</mass>
         <inertia>
-          <ixx>0.00109375</ixx>
-          <iyy>0.00109375</iyy>
-          <izz>0.00125</izz>
+          <ixx>0.27709917</ixx>
+          <iyy>0.27709917</iyy>
+          <izz>0.11521125</izz>
           <ixy>0</ixy>
           <ixz>0</ixz>
           <iyz>0</iyz>
