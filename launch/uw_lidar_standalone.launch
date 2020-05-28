@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- If true, run gazebo in verbose mode -->
+  <arg name="verbose" default="false"/>
+
+  <!-- world -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(find nps_uw_sensors_gazebo)/worlds/uw_lidar_basic.world"/>
+    <arg name="verbose"      value="$(arg verbose)"/>
+  </include>
+
+</launch>
+
