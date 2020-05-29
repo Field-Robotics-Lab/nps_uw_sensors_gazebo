@@ -70,12 +70,13 @@
 
          <!-- Range defines characteristics of an individual beam -->
          <range>
-           <!-- Minimum distance of the beam -->
+           <!-- Minimum distance of the beam in meters-->
            <min>1</min>
-           <!-- Maximum distance of the beam -->
-           <max>45</max>
-           <!-- Linear resolution of the beam -->
-           <resolution>0.5</resolution>
+           <!-- Maximum distance of the beam in meters. 
+                Should be between 2 and 45 meters, depending on visibility. -->
+           <max>20</max>
+           <!-- Linear resolution of each lidar ray. This _may_ refer to depth resolution. -->
+           <resolution>0.02</resolution>
          </range>
          <noise>
            <!-- Use gaussian noise -->
