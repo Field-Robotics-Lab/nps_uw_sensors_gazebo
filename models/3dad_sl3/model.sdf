@@ -77,7 +77,12 @@
            <!-- Linear resolution of the beam -->
            <resolution>0.5</resolution>
          </range>
-
+         <noise>
+           <!-- Use gaussian noise -->
+           <type>gaussian</type>
+           <mean>0.0</mean>
+           <stddev>0.02</stddev>
+         </noise>
         </ray>      
       </sensor>   
     </link>
