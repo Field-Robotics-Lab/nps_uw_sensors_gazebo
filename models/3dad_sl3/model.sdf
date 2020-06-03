@@ -114,13 +114,13 @@
               Should be between 2 and 45 meters, depending on visibility. -->
          <max>20</max>
          <!-- Linear resolution of each lidar ray. This _may_ refer to depth resolution. -->
-         <resolution>0.02</resolution>
+         <resolution>0.1</resolution>
        </range>
        <noise>
          <!-- Use gaussian noise -->
          <type>gaussian</type>
          <mean>0.0</mean>
-         <stddev>0.02</stddev>
+         <stddev>0.05</stddev>
        </noise>
       </ray>      
     </sensor>   

@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
   <!-- If true, run gazebo in verbose mode -->
-  <arg name="verbose" default="false"/>
+  <arg name="verbose" default="true"/>
 
   <!-- world -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch">

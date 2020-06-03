@@ -11,14 +11,15 @@ include_directories(
   ${GAZEBO_INCLUDE_DIRS}
 )
 link_directories(${GAZEBO_LIBRARY_DIRS})
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GAZEBO_CXX_FLAGS}")
 
 catkin_package()
 
 ## Plugins
-add_library(nps_gazebo_ros_gpu_sonar_single_beam_plugin
-            src/nps_gazebo_ros_gpu_sonar_single_beam.cpp)
-target_link_libraries(nps_gazebo_ros_gpu_sonar_single_beam_plugin
-                      GpuRayPlugin ${catkin_LIBRARIES})
+add_library(nps_gazebo_ros_3dad_sl3_lidar_plugin src/nps_gazebo_ros_3dad_sl3_lidar.cpp)
+add_library(nps_gazebo_ros_gpu_sonar_single_beam_plugin src/nps_gazebo_ros_gpu_sonar_single_beam.cpp)
+target_link_libraries(nps_gazebo_ros_3dad_sl3_lidar_plugin nps_gazebo_ros_gpu_sonar_single_beam_plugin
+                      GpuRayPlugin ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES})
 
 # for launch
 install(DIRECTORY launch
