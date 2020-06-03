@@ -247,6 +247,7 @@ void NpsGazeboRosGpuSingleBeamSonar::OnScan(ConstLaserScanStampedPtr &_msg)
   float intensity = 0.0;
   float intensity_ref = 2.6e-16;
   float absorption = 5e-5;
+  float el = 0.0;
   float sl = 120.0;
   float tl = 0.0;
   float ts = 10.0;
@@ -269,6 +270,9 @@ void NpsGazeboRosGpuSingleBeamSonar::OnScan(ConstLaserScanStampedPtr &_msg)
     // calculate transmission loss
     tl = 20 * log(range) + absorption*range;
 
+
+    // calculate echo level
+    el = sl - 2 * (tl) + ts;
 
     // next
     ++range_it;
