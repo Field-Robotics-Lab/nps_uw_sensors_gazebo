@@ -1,91 +1,161 @@
 <?xml version="1.0"?>
 <sdf version="1.6">
-  <model name="3dad_sl3">
-    <link name="3dad_sl3_link">
-      <visual name="3dad_sl3_visual">
-      <pose>0 0 -0.035 0 0 0</pose>
-        <geometry>
-          <mesh> 
-            <uri>model://3dad_sl3/mesh/3dad_sl3.dae</uri>
-          </mesh>
-        </geometry>
-      </visual>
-      <collision name="3dad_sl3_collision">
-      <pose>0 0 -0.035 0 1.570796 1.570796</pose>
-        <geometry>
-          <cylinder>
-            <radius>0.105</radius>
-            <length>0.355</length>
-          </cylinder>
-        </geometry>
-      </collision>
-      <inertial>
-        <mass>1</mass>
-        <inertia>
-          <ixx>0.27709917</ixx>
-          <iyy>0.27709917</iyy>
-          <izz>0.11521125</izz>
-          <ixy>0</ixy>
-          <ixz>0</ixz>
-          <iyz>0</iyz>
-        </inertia>
-      </inertial>
-      <sensor name="sl3_lidar" type="ray">
-	<always_on>true</always_on>
-        <!-- Position the ray sensor based on the specification. Also rotate
-             it by 90 degrees around the X-axis so that the <horizontal> rays
-             become vertical -->
-        <pose>0.015 -0.19 -0.015 3.141579 0 -1.570796</pose>
+ <model name="3dad_sl3">
+  <link name="base">
 
-        <!-- Enable visualization to see the rays in the GUI -->
-        <visualize>true</visualize>
+    <!-- Offset the base by half the lenght of the cylinder -->
+    <pose>0 0 0.075 0 0 0</pose>
+    <inertial>
+      <mass>1.2</mass>
+      <inertia>
+        <ixx>0.001087473</ixx>
+        <iyy>0.001087473</iyy>
+        <izz>0.001092437</izz>
+        <ixy>0</ixy>
+        <ixz>0</ixz>
+        <iyz>0</iyz>
+      </inertia>
+    </inertial>
 
-        <!-- Set the update rate of the sensor -->
-        <update_rate>40</update_rate>      
-       <ray>
-         <!-- The scan element contains the horizontal and vertical beams.-->
-         <scan>
-           <!-- The horizontal beams -->
-           <horizontal>
-             <!-- # of horizontal beams simulates a spinning beam -->
-             <samples>145</samples>
-             <!-- Resolution is multiplied by samples to determine number of
-                  simulated beams vs interpolated beams. See:
-                  http://sdformat.org/spec?ver=1.6&elem=sensor#horizontal_resolution
-                  -->
-             <resolution>1</resolution>
-             <!-- Minimum angle in radians -->
-             <min_angle>-0.26179938779</min_angle>
-             <!-- Maximum angle in radians -->
-             <max_angle>0.26179938779</max_angle>
-           </horizontal>
+    <collision name="base_collision">
+      <geometry>
+        <cylinder>
+          <!-- Radius and length provided by Velodyne -->
+          <radius>.04</radius>
+          <length>.15</length>
+        </cylinder>
+      </geometry>
+    </collision>
 
-           <vertical>
-             <samples>145</samples>
-             <resolution>1</resolution>
-             <min_angle>-0.26179938779</min_angle>
-             <max_angle>0.26179938779</max_angle>
-           </vertical>
-         </scan>
+    <!-- The visual is mostly a copy of the collision -->
+    <visual name="base_visual">
+      <geometry>
+        <cylinder>
+          <radius>.04</radius>
+          <length>.15</length>
+        </cylinder>
+      </geometry>
+    </visual>
+   </link>
 
-         <!-- Range defines characteristics of an individual beam -->
-         <range>
-           <!-- Minimum distance of the beam in meters-->
-           <min>1</min>
-           <!-- Maximum distance of the beam in meters. 
-                Should be between 2 and 45 meters, depending on visibility. -->
-           <max>20</max>
-           <!-- Linear resolution of each lidar ray. This _may_ refer to depth resolution. -->
-           <resolution>0.02</resolution>
-         </range>
-         <noise>
-           <!-- Use gaussian noise -->
-           <type>gaussian</type>
-           <mean>0.0</mean>
-           <stddev>0.02</stddev>
-         </noise>
-        </ray>      
-      </sensor>   
-    </link>
+
+   <link name="3dad_sl3_link">
+    <visual name="3dad_sl3_visual">
+     <pose>0 0 0.255 0 0 0</pose>
+     <geometry>
+       <mesh> 
+         <uri>model://3dad_sl3/mesh/3dad_sl3.dae</uri>
+       </mesh>
+     </geometry>
+    </visual>
+    <collision name="3dad_sl3_collision">
+     <pose>0 0 0.255 0 1.570796 1.570796</pose>
+     <geometry>
+       <cylinder>
+         <radius>0.105</radius>
+         <length>0.355</length>
+       </cylinder>
+     </geometry>
+    </collision>
+    <inertial>
+     <mass>1</mass>
+     <inertia>
+       <ixx>0.27709917</ixx>
+       <iyy>0.27709917</iyy>
+       <izz>0.11521125</izz>
+       <ixy>0</ixy>
+       <ixz>0</ixz>
+       <iyz>0</iyz>
+     </inertia>
+    </inertial>
+    <sensor name="sl3_lidar" type="ray">
+      <always_on>true</always_on>
+      <!-- Position the ray sensor based on the specification. Also rotate
+           it by 90 degrees around the X-axis so that the <horizontal> rays
+           become vertical -->
+      <pose>0.014 -0.19 0.262 3.141579 0 -1.570796</pose>
+
+      <!-- Enable visualization to see the rays in the GUI -->
+      <visualize>true</visualize>
+
+      <!-- Set the update rate of the sensor -->
+      <update_rate>40</update_rate>      
+     <ray>
+       <!-- The scan element contains the horizontal and vertical beams.-->
+       <scan>
+         <!-- The horizontal beams -->
+         <horizontal>
+           <!-- # of horizontal beams simulates a spinning beam -->
+           <samples>145</samples>
+           <!-- Resolution is multiplied by samples to determine number of
+                simulated beams vs interpolated beams. See:
+                http://sdformat.org/spec?ver=1.6&elem=sensor#horizontal_resolution
+                -->
+           <resolution>1</resolution>
+           <!-- Minimum angle in radians -->
+           <min_angle>-0.26179938779</min_angle>
+           <!-- Maximum angle in radians -->
+           <max_angle>0.26179938779</max_angle>
+         </horizontal>
+
+         <vertical>
+           <samples>145</samples>
+           <resolution>1</resolution>
+           <min_angle>-0.26179938779</min_angle>
+           <max_angle>0.26179938779</max_angle>
+         </vertical>
+       </scan>
+
+       <!-- Range defines characteristics of an individual beam -->
+       <range>
+         <!-- Minimum distance of the beam in meters-->
+         <min>1</min>
+         <!-- Maximum distance of the beam in meters. 
+              Should be between 2 and 45 meters, depending on visibility. -->
+         <max>20</max>
+         <!-- Linear resolution of each lidar ray. This _may_ refer to depth resolution. -->
+         <resolution>0.02</resolution>
+       </range>
+       <noise>
+         <!-- Use gaussian noise -->
+         <type>gaussian</type>
+         <mean>0.0</mean>
+         <stddev>0.02</stddev>
+       </noise>
+      </ray>      
+    </sensor>   
+   </link>
+   <!-- Each joint must have a unique name -->
+   <joint type="revolute2" name="joint">
+     <!-- Position the joint at the bottom of the top link -->
+     <pose>0 0 0.17 0 0 0</pose>
+     <!-- Use the base link as the parent of the joint -->
+     <parent>base</parent>
+     <!-- Use the top link as the child of the joint -->
+     <child>3dad_sl3_link</child>
+     <!-- The axis defines the joint's degree of freedom -->
+     <axis>
+       <!-- Revolve around the z-axis -->
+       <xyz>0 0 1</xyz>
+       <!-- Limit refers to the range of motion of the joint -->
+       <limit>
+         <!-- Use a very large number to indicate a continuous revolution -->
+         <lower>-3.05433</lower>
+         <upper>3.05433</upper>
+       </limit>     
+     </axis>
+     <!-- The axis defines the joint's degree of freedom -->
+     <axis2>
+       <!-- Revolve around the z-axis -->
+       <xyz>1 0 0</xyz>
+       <!-- Limit refers to the range of motion of the joint -->
+       <limit>
+         <!-- Use a very large number to indicate a continuous revolution -->
+         <lower>-0.2617994</lower>
+         <upper>0.2617994</upper>
+       </limit>
+     </axis2>
+   </joint>
+
   </model>
 </sdf>
