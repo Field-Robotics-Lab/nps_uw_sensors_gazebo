@@ -247,10 +247,10 @@ void NpsGazeboRosGpuSingleBeamSonar::OnScan(ConstLaserScanStampedPtr &_msg)
   float intensity = 0.0;
   float intensity_ref = 2.6e-16;
   float absorption = 5e-5;
-  float el = 0.0;
-  float sl = 120.0;
-  float tl = 0.0;
-  float ts = 10.0;
+  float echo_level = 0.0;
+  float source_level = 120.0;
+  float transmission_loss = 0.0;
+  float target_strength = 10.0;
   float range = laser_msg.range_max - laser_msg.range_min;
   auto range_it = _msg->scan().ranges().begin();
   auto intensity_it = _msg->scan().intensities().begin();
@@ -264,19 +264,20 @@ void NpsGazeboRosGpuSingleBeamSonar::OnScan(ConstLaserScanStampedPtr &_msg)
     /*
     // calculate target strength
 
-    ts = 10 * log(intensity
+    target_strength = 10 * log(intensity/intensity_ref)
     */
 
     // calculate transmission loss
-    tl = 20 * log(range) + absorption*range;
+    transmission_loss = 20 * log(range) + absorption*range;
 
 
     // calculate echo level
-    el = sl - 2 * (tl) + ts;
+    echo_level = source_level - 2 * (transmission_loss) + target_strength;
 
     // next
     ++range_it;
     ++intensity_it;
+    angle = laser_msg.angle_increment;
   }
 
   // store calculated range and intensity
