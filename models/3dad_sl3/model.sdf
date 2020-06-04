@@ -2,15 +2,14 @@
 <sdf version="1.6">
  <model name="3dad_sl3">
   <link name="base">
-
     <!-- Offset the base by half the lenght of the cylinder -->
-    <pose>0 0 0.075 0 0 0</pose>
+    <pose>0 0 0.0375 0 0 0</pose>
     <inertial>
-      <mass>1.2</mass>
+      <mass>2</mass>
       <inertia>
-        <ixx>0.001087473</ixx>
-        <iyy>0.001087473</iyy>
-        <izz>0.001092437</izz>
+        <ixx>0.0017375</ixx>
+        <iyy>0.0017375</iyy>
+        <izz>0.0016</izz>
         <ixy>0</ixy>
         <ixz>0</ixz>
         <iyz>0</iyz>
@@ -20,9 +19,8 @@
     <collision name="base_collision">
       <geometry>
         <cylinder>
-          <!-- Radius and length provided by Velodyne -->
           <radius>.04</radius>
-          <length>.15</length>
+          <length>.075</length>
         </cylinder>
       </geometry>
     </collision>
@@ -32,8 +30,78 @@
       <geometry>
         <cylinder>
           <radius>.04</radius>
-          <length>.15</length>
+          <length>.075</length>
         </cylinder>
+      </geometry>
+    </visual>
+   </link>
+
+  <link name="top">
+    <!-- Offset the base by half the length of the cylinder -->
+    <pose>0 0 0.1125 0 0 0</pose>
+    <inertial>
+      <mass>2</mass>
+      <inertia>
+        <ixx>0.0017375</ixx>
+        <iyy>0.0017375</iyy>
+        <izz>0.0016</izz>
+        <ixy>0</ixy>
+        <ixz>0</ixz>
+        <iyz>0</iyz>
+      </inertia>
+    </inertial>
+
+    <collision name="top_collision">
+      <geometry>
+        <cylinder>
+          <radius>.04</radius>
+          <length>.075</length>
+        </cylinder>
+      </geometry>
+    </collision>
+
+    <!-- The visual is mostly a copy of the collision -->
+    <visual name="top_visual">
+      <geometry>
+        <cylinder>
+          <radius>.04</radius>
+          <length>.075</length>
+        </cylinder>
+      </geometry>
+    </visual>
+   </link>
+
+
+  <link name="tray">
+
+    <pose>0 0 0.1775 0 0 0</pose>
+    <inertial>
+      <mass>0.5</mass>
+      <inertia>
+        <ixx>0.00525520833</ixx>
+        <iyy>0.00167083333</iyy>
+        <izz>0.00691770833</izz>
+        <ixy>0</ixy>
+        <ixz>0</ixz>
+        <iyz>0</iyz>
+      </inertia>
+    </inertial>
+
+    <collision name="tray_collision">
+      <geometry>
+        <!--volume = 0.00071 cubic meters-->
+        <box>
+          <size>0.2 0.355 0.01</size>
+        </box>
+      </geometry>
+    </collision>
+
+    <!-- The visual is mostly a copy of the collision -->
+    <visual name="tray_visual">
+      <geometry>
+        <box>
+          <size>0.2 0.355 0.01</size>
+        </box>
       </geometry>
     </visual>
    </link>
@@ -41,7 +109,7 @@
 
    <link name="3dad_sl3_link">
     <visual name="3dad_sl3_visual">
-     <pose>0 0 0.255 0 0 0</pose>
+     <pose>0 0 0.2735 0 0 0</pose>
      <geometry>
        <mesh> 
          <uri>model://3dad_sl3/mesh/3dad_sl3.dae</uri>
@@ -58,17 +126,17 @@
      </geometry>
     </collision>
     <inertial>
-     <mass>1</mass>
+     <mass>20.9</mass>
      <inertia>
        <ixx>0.27709917</ixx>
-       <iyy>0.27709917</iyy>
-       <izz>0.11521125</izz>
+       <iyy>0.11521125</iyy>
+       <izz>0.27709917</izz>
        <ixy>0</ixy>
        <ixz>0</ixz>
        <iyz>0</iyz>
      </inertia>
     </inertial>
-    <sensor name="sl3_lidar" type="ray">
+    <sensor name="3d_pulse_lidar" type="ray">
       <always_on>true</always_on>
       <!-- Position the ray sensor based on the specification. Also rotate
            it by 90 degrees around the X-axis so that the <horizontal> rays
@@ -125,14 +193,15 @@
       </ray>      
     </sensor>   
    </link>
+
    <!-- Each joint must have a unique name -->
-   <joint type="revolute2" name="joint">
+   <joint type="revolute" name="base_top_joint">
      <!-- Position the joint at the bottom of the top link -->
-     <pose>0 0 0.17 0 0 0</pose>
+     <pose>0 0 -0.0375 0 0 0</pose>
      <!-- Use the base link as the parent of the joint -->
      <parent>base</parent>
      <!-- Use the top link as the child of the joint -->
-     <child>3dad_sl3_link</child>
+     <child>top</child>
      <!-- The axis defines the joint's degree of freedom -->
      <axis>
        <!-- Revolve around the z-axis -->
@@ -144,8 +213,18 @@
          <upper>3.05433</upper>
        </limit>     
      </axis>
+   </joint>
+
+   <!-- Each joint must have a unique name -->
+   <joint type="revolute" name="base_tray_joint">
+     <!-- Position the joint at the bottom of the top link -->
+     <pose>0 0 0 0 0 -1.570796</pose>
+     <!-- Use the base link as the parent of the joint -->
+     <parent>top</parent>
+     <!-- Use the top link as the child of the joint -->
+     <child>tray</child>
      <!-- The axis defines the joint's degree of freedom -->
-     <axis2>
+     <axis>
        <!-- Revolve around the z-axis -->
        <xyz>1 0 0</xyz>
        <!-- Limit refers to the range of motion of the joint -->
@@ -154,8 +233,19 @@
          <lower>-0.2617994</lower>
          <upper>0.2617994</upper>
        </limit>
-     </axis2>
+     </axis>
    </joint>
+
+   <!-- Each joint must have a unique name -->
+   <joint type="fixed" name="tray_lidar_joint">
+     <!-- Position the joint at the bottom of the top link -->
+     <pose>0 0 0.1 0 0 0</pose>
+     <!-- Use the base link as the parent of the joint -->
+     <parent>tray</parent>
+     <!-- Use the top link as the child of the joint -->
+     <child>3dad_sl3_link</child>
+   </joint>
+
 
   </model>
 </sdf>
