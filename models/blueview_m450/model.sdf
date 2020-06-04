@@ -27,11 +27,49 @@
       <visual name="visual">
         <geometry>
 	  <mesh>
-	    <!--<uri>file://$(find uuv_sensor_ros_plugins)/meshes/p900.dae</uri>-->
 	    <uri>model://blueview_m450/meshes/blueview_m450.dae</uri>
 	  </mesh>
         </geometry>
       </visual>
+
+      <sensor name="image_sonar" type="depth">
+	<visualize>true</visualize>
+	<always_on>true</always_on>
+	<update_rate>25</update_rate>
+	<camera>
+	  <!-- 90 degrees for the M450-90 -->
+	  <horizontal_fov>1.54719755</horizontal_fov>
+          <image>
+	    <width>512</width>
+	    <!-- Set vertical FOV by setting image height -->
+	    <!-- For 10 deg. -->
+	    <height>57</height>
+            <format>R8G8B8</format>
+          </image>
+          <clip>
+            <near>2</near>
+            <far>150</far>
+          </clip>
+	  <depth_camera>
+            <output>depths</output>
+          </depth_camera>
+          <save enabled="true">
+            <path>/tmp/camera</path>
+          </save>
+	</camera>
+	<plugin filename="libimage_sonar_ros_plugin.so" name="forward_sonar">
+	  <!-- This name is prepended to ROS topics -->
+	  <cameraName>blueview_m450</cameraName>
+	  <!-- ROS publication topics --> 
+	  <imageTopicName>image_raw</imageTopicName>
+	  <cameraInfoTopicName>image_raw/camera_info</cameraInfoTopicName>
+	  <pointCloudTopicName>point_cloud</pointCloudTopicName>
+	  <depthImageTopicName>image_depth</depthImageTopicName>
+	  <depthImageCameraInfoTopicName>image_depth/camera_info</depthImageCameraInfoTopicName>
+
+          <frameName>forward_sonar_optical_link</frameName>
+	</plugin>
+      </sensor>     
     </link>
   </model>
 </sdf>
