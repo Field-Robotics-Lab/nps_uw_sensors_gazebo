@@ -44,15 +44,15 @@ POSSIBILITY OF SUCH DAMAGE.
   <xacro:macro name="nortek_dvl1000_link" params="name xyz">
     <link name="${name}_link">
       <inertial>
-        <mass value="1.7"/>
+        <mass value="2.7"/>
         <origin xyz="0 0 0" rpy="${pi} 0 0"/>
-        <inertia ixx="0.005191091666667" ixy="0" ixz="0" iyy="0.005191091666667" iyz="0" izz="0.00276165"/>
+        <inertia ixx="0.008244675" ixy="0" ixz="0" iyy="0.008244675" iyz="0" izz="0.00438615"/>
       </inertial>
       <visual>
         <geometry>
           <mesh filename="package://nps_uw_sensors_gazebo/meshes/DVL1000-4000m.dae"/>
         </geometry>
-        <origin xyz="${xyz}" rpy="0 3.141592653589793 0"/>
+        <origin xyz="${xyz}" rpy="0 ${pi} 0"/>
       </visual>
       <collision>
         <geometry>
@@ -84,6 +84,7 @@ POSSIBILITY OF SUCH DAMAGE.
           <!--  DVL1000-4000m parameters (from vendor data sheet) -->
           <updateRateHZ>8.0</updateRateHZ>
           <gaussianNoiseBeamVel>0.005</gaussianNoiseBeamVel>
+          <gaussianNoiseBeamWtrVel>0.015</gaussianNoiseBeamWtrVel>
           <gaussianNoiseBeamRange>0.1</gaussianNoiseBeamRange>
           <minRange>0.2</minRange>
           <maxRange>75.0</maxRange>

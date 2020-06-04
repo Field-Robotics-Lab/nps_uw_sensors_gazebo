@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="gui" default="true"/>
+  <arg name="paused" default="false"/>
+ 
+  <!-- use Gazebo's empty_world.launch with uuv_dave_ocean_waves.world -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="extra_gazebo_args" value="-s libdsros_sensors.so"/>
+    <arg name="paused" value="$(arg paused)"/>
+    <arg name="use_sim_time" value="true"/>
+    <arg name="gui" value="$(arg gui)"/>
+    <arg name="headless" value="false"/>
+    <arg name="debug" value="false"/>
+    <arg name="verbose" value="false"/>
+  </include>
+
+  <!-- Load and spawn the model, starts the joint & state publishers, make the model move -->
+  <param name="dvls" command="$(find xacro)/xacro $(find nps_uw_sensors_gazebo)/urdf/whoi_dvl_side_by_side.xacro" />
+  <node name="spawn_dvls" pkg="gazebo_ros" type="spawn_model"
+        args="-urdf -param dvls -model side_by_side" respawn="false" output="screen" />
+  <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" respawn="false">
+    <remap from="robot_description" to="dvls" />
+  </node>
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher">
+    <remap from="robot_description" to="dvls" />
+  </node>
+  <node type="rviz" name="rviz" pkg="rviz" args="-d $(find nps_uw_sensors_gazebo)/rviz/whoi_dvl_side_by_side.rviz" />
+</launch>

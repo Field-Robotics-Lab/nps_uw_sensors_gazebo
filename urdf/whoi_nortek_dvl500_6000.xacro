@@ -46,14 +46,14 @@ POSSIBILITY OF SUCH DAMAGE.
       <inertial>
         <mass value="3.1"/>
         <origin xyz="0 0 0" rpy="${pi} 0 0"/>
-        <inertia ixx="0.017348633333333" ixy="0" ixz="0" iyy="0.017348633333333" iyz="0" izz="0.01340595"/>
+        <inertia ixx="0.033018366666667" ixy="0" ixz="0" iyy="0.033018366666667" iyz="0" izz="0.02551455"/>
       </inertial>
       <visual>
         <geometry>
           <!-- Replace mesh with correct one once it's available -->
           <mesh filename="package://nps_uw_sensors_gazebo/meshes/DVL1000-4000m.dae"/>
         </geometry>
-        <origin xyz="${xyz}" rpy="0 3.141592653589793 0"/>
+        <origin xyz="${xyz}" rpy="0 ${pi} 0"/>
       </visual>
       <collision>
         <geometry>
@@ -85,6 +85,7 @@ POSSIBILITY OF SUCH DAMAGE.
           <!--  DVL500-6000m parameters (from vendor data sheet) -->
           <updateRateHZ>8.0</updateRateHZ>
           <gaussianNoiseBeamVel>0.005</gaussianNoiseBeamVel>
+          <gaussianNoiseBeamWtrVel>0.015</gaussianNoiseBeamWtrVel>
           <gaussianNoiseBeamRange>0.1</gaussianNoiseBeamRange>
           <minRange>0.3</minRange>
           <maxRange>200.0</maxRange>

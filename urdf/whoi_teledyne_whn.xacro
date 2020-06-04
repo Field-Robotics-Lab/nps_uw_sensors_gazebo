@@ -44,9 +44,9 @@ POSSIBILITY OF SUCH DAMAGE.
   <xacro:macro name="teledyne_whn_link" params="name xyz">
     <link name="${name}_link">
       <inertial>
-        <mass value="8.8"/>
+        <mass value="15.8"/>
         <origin xyz="0 0 0" rpy="${pi} 0 0"/>
-        <inertia ixx="0.071732122" ixy="0" ixz="0" iyy="0.071732122" iyz="0" izz="0.055786544"/>
+        <inertia ixx="0.1287917645" ixy="0" ixz="0" iyy="0.1287917645" iyz="0" izz="0.100162204"/>
       </inertial>
       <visual>
         <geometry>
@@ -83,6 +83,7 @@ POSSIBILITY OF SUCH DAMAGE.
           <!--  WHN 600 parameters (from vendor data sheet) -->
           <updateRateHZ>7.0</updateRateHZ>
           <gaussianNoiseBeamVel>0.005</gaussianNoiseBeamVel>
+          <gaussianNoiseBeamWtrVel>0.0075</gaussianNoiseBeamWtrVel>
           <gaussianNoiseBeamRange>0.1</gaussianNoiseBeamRange>
           <minRange>0.7</minRange>
           <maxRange>90.0</maxRange>

@@ -28,9 +28,6 @@
       <origin xyz="-0.1 0 0.5" rpy="0 0 0"/>
     </collision>
   </link>
-  <gazebo reference="robot_link">
-    <material>Gazebo/Green</material>
-  </gazebo>
 
   <joint name="robot_base_joint" type="fixed">
     <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -39,7 +36,7 @@
   </joint>
 
   <xacro:dvl_sensor_enu namespace="dvl" parent_link="robot_base_link">
-    <origin xyz="1.5 0 -0.5" rpy="0 ${0.5*pi} 0"/>
+    <origin xyz="1 0 -0.4" rpy="0 ${0.5*pi} 0"/>
   </xacro:dvl_sensor_enu>
 
   <!-- Turn gravity (off) for now so that the (unpowered) robot doesn't sink like

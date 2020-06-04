@@ -44,23 +44,23 @@ POSSIBILITY OF SUCH DAMAGE.
   <xacro:macro name="teledyne_explorer_link" params="name xyz">
     <link name="${name}_link">
       <inertial>
-        <mass value="3.3"/>
+        <mass value="8.6"/>
         <origin xyz="0 0 0" rpy="${pi} 0 0"/>
         <!-- Different mounting orientation than other DVLs -->
-        <inertia ixx="0.0084352125" ixy="0" ixz="0" iyy="0.03676000625" iyz="0" izz="0.03676000625"/>
+        <inertia ixx="0.021982675" ixy="0" ixz="0" iyy="0.095798804166667" iyz="0" izz="0.095798804166667"/>
       </inertial>
       <visual>
         <geometry>
           <mesh filename="package://nps_uw_sensors_gazebo/meshes/TeledyneMarineExplorer.dae"/>
         </geometry>
-        <origin xyz="${xyz}" rpy="-1.5707963267948966 0 -1.5707963267948966"/>
+        <origin xyz="${xyz}" rpy="${-0.5*pi} 0 ${-0.5*pi}"/>
       </visual>
       <collision>
         <geometry>
           <!-- Replace cylinder with collision mesh once it's available -->
           <cylinder length="0.344" radius="0.0715"/>
         </geometry>
-        <origin xyz="${xyz}" rpy="0 1.5707963267948966 0"/>
+        <origin xyz="${xyz}" rpy="0 ${0.5*pi} 0"/>
       </collision>
     </link>
   </xacro:macro>
@@ -85,6 +85,7 @@ POSSIBILITY OF SUCH DAMAGE.
           <!--  Explorer 4000 parameters (from vendor data sheet) -->
           <updateRateHZ>12.0</updateRateHZ>
           <gaussianNoiseBeamVel>0.019</gaussianNoiseBeamVel>
+          <gaussianNoiseBeamWtrVel>0.025</gaussianNoiseBeamWtrVel>
           <gaussianNoiseBeamRange>0.1</gaussianNoiseBeamRange>
           <minRange>0.5</minRange>
           <maxRange>66.0</maxRange>
