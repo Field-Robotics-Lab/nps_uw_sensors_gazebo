@@ -136,7 +136,13 @@
        <iyz>0</iyz>
      </inertia>
     </inertial>
-    <sensor name="3d_pulse_lidar" type="ray">
+    <sensor name="3d_pulse_lidar" type="gpu_ray">
+      <plugin name="pulse_lidar_sensing" filename="libgazebo_ros_velodyne_gpu_laser.so">
+          <topicName>nps_gazebo_ros_yw/pulse_lidar/points</topicName>
+          <frameName>nps_gazebo_ros_uw/pulse_lidar_link</frameName>
+          <min_intensity>0</min_intensity>
+      </plugin>
+
       <always_on>true</always_on>
       <!-- Position the ray sensor based on the specification. Also rotate
            it by 90 degrees around the X-axis so that the <horizontal> rays

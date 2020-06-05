@@ -4,7 +4,11 @@ project(nps_uw_sensors_gazebo)
 find_package(catkin REQUIRED tf)
 
 find_package(gazebo REQUIRED)
+find_package(roscpp REQUIRED)
+find_package(std_msgs REQUIRED)
 find_package(OpenCV)
+include_directories(${roscpp_INCLUDE_DIRS})
+include_directories(${std_msgs_INCLUDE_DIRS})
 include_directories(
   include
   ${catkin_INCLUDE_DIRS} 
@@ -19,10 +23,21 @@ catkin_package()
 add_library(gazebo_ros_pulse_lidar_plugin src/gazebo_ros_pulse_lidar.cpp)
 add_library(nps_gazebo_ros_gpu_sonar_single_beam_plugin src/nps_gazebo_ros_gpu_sonar_single_beam.cpp)
 target_link_libraries(gazebo_ros_pulse_lidar_plugin nps_gazebo_ros_gpu_sonar_single_beam_plugin
-                      GpuRayPlugin ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES})
+                      GpuRayPlugin ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES} ${roscpp_LIBRARIES})
 
 # for launch
 install(DIRECTORY launch
         DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
         PATTERN "*~" EXCLUDE)
 
+# Build the stand-alone test program
+add_executable(lidar_test src/lidar_test.cc)
+
+if (${gazebo_VERSION_MAJOR} LESS 6)
+  # These two
+  include(FindBoost)
+  find_package(Boost ${MIN_BOOST_VERSION} REQUIRED system filesystem regex)
+  target_link_libraries(lidar_test ${GAZEBO_LIBRARIES} ${Boost_LIBRARIES})
+else()
+  target_link_libraries(lidar_test ${GAZEBO_LIBRARIES})
+endif()

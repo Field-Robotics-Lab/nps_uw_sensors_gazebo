@@ -34,11 +34,10 @@
       <uri>model://3dad_sl3</uri>
       <pose>2.1 1.0 0.5 0 0 4.71238898038</pose>
     </include>
-<!--    <plugin name="pulse_lidar_control" filename="libgazebo_ros_pulse_lidar_plugin.so" >
-      <pan_velocity>2</pan_velocity>
+    <plugin name="pulse_lidar_control" filename="libgazebo_ros_pulse_lidar_plugin.so" >
+      <pan_position>-1</pan_position>
       <tilt_position>-0.25</tilt_position>
     </plugin>
---> 
     </model>
 
     <!-- Include cylinder target -->
