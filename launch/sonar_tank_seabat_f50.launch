@@ -5,10 +5,7 @@
   </include>
 
   <!-- visualizations -->
-<zz>
   <node name="rqt_images" pkg="rqt_gui" type="rqt_gui" output="screen" args = "--perspective-file $(find nps_uw_sensors_gazebo)/config/sonar_tank_seabat_f50_images.perspective" />
   <node type="rviz" name="rviz" pkg="rviz" args="-d $(find nps_uw_sensors_gazebo)/config/sonar_tank_seabat_f50.rviz" />
-</zz>
-
 
 </launch>
