@@ -20,10 +20,15 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GAZEBO_CXX_FLAGS}")
 catkin_package()
 
 ## Plugins
+
 add_library(gazebo_ros_pulse_lidar_plugin src/gazebo_ros_pulse_lidar.cpp)
-add_library(nps_gazebo_ros_gpu_sonar_single_beam_plugin src/nps_gazebo_ros_gpu_sonar_single_beam.cpp)
-target_link_libraries(gazebo_ros_pulse_lidar_plugin nps_gazebo_ros_gpu_sonar_single_beam_plugin
-                      GpuRayPlugin ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES} ${roscpp_LIBRARIES})
+add_library(nps_gazebo_ros_gpu_sonar_single_beam_plugin 
+            src/nps_gazebo_ros_gpu_sonar_single_beam.cpp)
+
+target_link_libraries(nps_gazebo_ros_gpu_sonar_single_beam_plugin
+                      GpuRayPlugin ${catkin_LIBRARIES})
+target_link_libraries(gazebo_ros_pulse_lidar_plugin 
+                      ${GAZEBO_LIBRARIES} ${roscpp_LIBRARIES})
 
 # for launch
 install(DIRECTORY launch
