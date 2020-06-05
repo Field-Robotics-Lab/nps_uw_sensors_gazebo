@@ -137,7 +137,7 @@
       </inertial>
       <visual>
         <geometry>
-          <mesh filename="package://nps_uw_sensors_gazebo/meshes/TeledyneMarineExplorer.dae"/>
+          <mesh filename="package://nps_uw_sensors_gazebo/models/whoi_teledyne_explorer4000/meshes/MarineExplorer.dae"/>
         </geometry>
         <origin xyz="0 0 0" rpy="0 0 1.5707963267948966"/>
       </visual>

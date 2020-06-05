@@ -4,7 +4,6 @@
 
   <xacro:include filename="$(find nps_uw_sensors_gazebo)/urdf/whoi_teledyne_whn.xacro"/>
 
-  <!-- Simple example "UUV" (really it's just a cylinder) -->
   <link name="robot_base_link"/>
 
   <link name="robot_link">

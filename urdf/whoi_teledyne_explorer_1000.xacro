@@ -51,7 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
       </inertial>
       <visual>
         <geometry>
-          <mesh filename="package://nps_uw_sensors_gazebo/meshes/TeledyneMarineExplorer.dae"/>
+          <mesh filename="package://nps_uw_sensors_gazebo/models/whoi_teledyne_explorer1000/meshes/MarineExplorer.dae"/>
         </geometry>
         <origin xyz="${xyz}" rpy="${-0.5*pi} 0 ${-0.5*pi}"/>
       </visual>

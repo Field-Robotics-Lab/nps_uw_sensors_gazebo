@@ -1,4 +1,4 @@
 <launch>
-  <param name="teledyne_whn" command="$(find xacro)/xacro $(find nps_uw_sensors_gazebo)/urdf/whoi_teledyne_whn_robot.xacro" />
+  <param name="whoi_teledyne_whn" command="$(find xacro)/xacro $(find nps_uw_sensors_gazebo)/urdf/whoi_teledyne_whn_robot.xacro" />
 </launch>
 

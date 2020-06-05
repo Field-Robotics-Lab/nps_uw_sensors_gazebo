@@ -137,7 +137,7 @@
       <visual>
         <geometry>
           <!-- Replace with Nortek DVL500 mesh when available -->
-          <mesh filename="package://nps_uw_sensors_gazebo/meshes/DVL1000-4000m.dae"/>
+          <mesh filename="package://nps_uw_sensors_gazebo/models/whoi_nortek_dvl500_300/meshes/DVL500-300m.dae"/>
         </geometry>
         <origin xyz="0 0 0" rpy="0 -1.5707963267948966 0"/>
       </visual>

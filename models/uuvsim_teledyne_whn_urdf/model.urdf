@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<robot name="teledyne_whn">
+<robot name="uuvsim_teledyne_whn_urdf">
 
   <link name="dvl_base_link"/>
 
@@ -11,7 +11,7 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://nps_uw_sensors_gazebo/meshes/WorkhorseNavigator.dae"/>
+        <mesh filename="model://uuvsim_teledyne_whn_urdf/meshes/WorkhorseNavigator.dae"/>
       </geometry>
       <origin xyz="0 0 0" rpy="0 1.5707963267948966 0"/>
     </visual>

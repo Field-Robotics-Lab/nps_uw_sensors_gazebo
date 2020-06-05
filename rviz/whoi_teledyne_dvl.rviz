@@ -110,7 +110,7 @@ Visualization Manager:
           Show Trail: false
           Value: true
       Name: RobotModel
-      Robot Description: teledyne_whn
+      Robot Description: whoi_teledyne_whn
       TF Prefix: ""
       Update Interval: 0
       Value: true

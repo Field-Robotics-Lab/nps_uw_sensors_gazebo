@@ -3,7 +3,7 @@
      robot_state_publisher"s inability to work with SDF models.  It may work
      when mounted to a robot with plugins that broadcast their transforms. -->
 <sdf version="1.6">
-  <model name="teledyne_whn">
+  <model name="uuvsim_teledyne_whn">
     <link name="dvl_link">
       <pose>0 0 0 0 0 0</pose>
       <inertial>
@@ -28,7 +28,7 @@
         <geometry>
           <mesh>
             <scale>1 1 1</scale>
-            <uri>file://meshes/WorkhorseNavigator.dae</uri>
+            <uri>model://uuvsim_teledyne_whn/meshes/WorkhorseNavigator.dae</uri>
           </mesh>
         </geometry>
       </visual>

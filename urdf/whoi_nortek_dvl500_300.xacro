@@ -51,7 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
       <visual>
         <geometry>
           <!-- Replace mesh with correct one once it's available -->
-          <mesh filename="package://nps_uw_sensors_gazebo/meshes/DVL1000-4000m.dae"/>
+          <mesh filename="package://nps_uw_sensors_gazebo/models/whoi_nortek_dvl500_300/meshes/DVL500-300m.dae"/>
         </geometry>
         <origin xyz="${xyz}" rpy="0 ${pi} 0"/>
       </visual>
