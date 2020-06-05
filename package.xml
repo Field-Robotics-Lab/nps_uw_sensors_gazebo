@@ -19,4 +19,10 @@
   <depend>rospy</depend>
   <depend>tf</depend>
 
+  <depend version_gte="2.5.17">gazebo_ros</depend>
+  <export>
+    <gazebo_ros gazebo_model_path="${prefix}/models"/>
+    <gazebo_ros gazebo_media_path="${prefix}"/>
+  </export>
+
 </package>
