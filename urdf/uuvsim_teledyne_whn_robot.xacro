@@ -1,0 +1,63 @@
+<?xml version="1.0"?>
+
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="teledyne_whn">
+
+  <xacro:include filename="$(find nps_uw_sensors_gazebo)/urdf/uuvsim_teledyne_whn.xacro"/>
+
+  <link name="robot_base_link"/>
+
+  <link name="robot_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="200"/>
+      <inertia
+        ixx="96.67" ixy="0.0" ixz="0.0"
+        iyy="158.17" iyz="0.0"
+        izz="146.83"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <mesh filename="package://nps_uw_sensors_gazebo/meshes/eNOVUS.dae"/>
+      </geometry>
+      <origin xyz="0 0 -0.4" rpy="0 0 ${0.5*pi}"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="2.5 1.6 1.8"/>
+      </geometry>
+      <origin xyz="-0.1 0 0.5" rpy="0 0 0"/>
+    </collision>
+  </link>
+
+  <joint name="robot_base_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <parent link="robot_base_link"/>
+    <child link="robot_link"/>
+  </joint>
+
+  <xacro:dvl_sensor_enu namespace="dvl" parent_link="robot_base_link">
+    <origin xyz="1 0 -0.4" rpy="0 ${0.5*pi} 0"/>
+  </xacro:dvl_sensor_enu>
+
+  <!-- Turn gravity (off) for now so that the (unpowered) robot doesn't sink like
+       a rock.  Can remove this once the neutral buoyancy issue (#4) is resolved -->
+  <gazebo reference="robot_link">
+    <turnGravityOff>true</turnGravityOff>
+  </gazebo>
+  <gazebo reference="dvl/dvl_link">
+    <turnGravityOff>true</turnGravityOff>
+  </gazebo>
+  <gazebo reference="dvl/dvl_sonar0_link">
+    <turnGravityOff>true</turnGravityOff>
+  </gazebo>
+  <gazebo reference="dvl/dvl_sonar1_link">
+    <turnGravityOff>true</turnGravityOff>
+  </gazebo>
+  <gazebo reference="dvl/dvl_sonar2_link">
+    <turnGravityOff>true</turnGravityOff>
+  </gazebo>
+  <gazebo reference="dvl/dvl_sonar3_link">
+    <turnGravityOff>true</turnGravityOff>
+  </gazebo>
+
+</robot>

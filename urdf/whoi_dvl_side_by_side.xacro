@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<!-- Simple Xacro template for generating a stanadlone Teledyne WHN
+     DVL model that can be inserted into a world for demo purposes. -->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="side_by_side">
+
+  <xacro:include filename="$(find nps_uw_sensors_gazebo)/urdf/whoi_teledyne_whn.xacro"/>
+  <xacro:include filename="$(find nps_uw_sensors_gazebo)/urdf/whoi_teledyne_explorer_1000.xacro"/>
+  <xacro:include filename="$(find nps_uw_sensors_gazebo)/urdf/whoi_nortek_dvl1000_300.xacro"/>
+
+  <!-- Just making a zero-dimension link at the origin to attach everything to -->
+  <link name="base_link"/>
+
+  <!-- Call the macro to "attach" the Teledyne WHN DVL -->
+  <xacro:teledyne_whn_macro
+    name="whn" namespace="whn" xyz="0 0 0"
+    dvl_topic="dvl" ranges_topic="ranges"
+    robot_link="base_link" joint_xyz="0 0 2"/>
+
+  <!-- Call the macro to "attach" the Teledyne Explorer DVL -->
+  <xacro:teledyne_explorer_macro
+    name="explorer" namespace="explorer" xyz="0 0 0"
+    dvl_topic="dvl" ranges_topic="ranges"
+    robot_link="base_link" joint_xyz="0 2 2"/>
+
+  <!-- Call the macro to "attach" the Nortek DVL1000 -->
+  <xacro:nortek_dvl1000_macro
+    name="dvl1000" namespace="dvl1000" xyz="0 0 0"
+    dvl_topic="dvl" ranges_topic="ranges"
+    robot_link="base_link" joint_xyz="0 -2 2"/>
+
+  <!-- Turn gravity (off) for now so that the (unpowered) robot doesn't sink like
+       a rock.  Can remove this once the neutral buoyancy issue (#4) is resolved -->
+  <gazebo reference="base_link">
+    <turnGravityOff>true</turnGravityOff>
+  </gazebo>
+</robot>
