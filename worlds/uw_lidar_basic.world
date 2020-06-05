@@ -36,7 +36,7 @@
     </include>
     <plugin name="pulse_lidar_control" filename="libgazebo_ros_pulse_lidar_plugin.so" >
       <pan_position>-2</pan_position>
-      <tilt_position>-0.25</tilt_position>
+      <tilt_position>0</tilt_position>
     </plugin>
     </model>
 

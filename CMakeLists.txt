@@ -30,14 +30,3 @@ install(DIRECTORY launch
         DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
         PATTERN "*~" EXCLUDE)
 
-# Build the stand-alone test program
-add_executable(lidar_test src/lidar_test.cc)
-
-if (${gazebo_VERSION_MAJOR} LESS 6)
-  # These two
-  include(FindBoost)
-  find_package(Boost ${MIN_BOOST_VERSION} REQUIRED system filesystem regex)
-  target_link_libraries(lidar_test ${GAZEBO_LIBRARIES} ${Boost_LIBRARIES})
-else()
-  target_link_libraries(lidar_test ${GAZEBO_LIBRARIES})
-endif()
