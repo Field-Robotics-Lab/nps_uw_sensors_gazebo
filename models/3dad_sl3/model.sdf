@@ -142,6 +142,9 @@
           <topicName>nps_gazebo_ros_uw/pulse_lidar/points</topicName>
           <frameName>nps_gazebo_ros_uw/pulse_lidar_link</frameName>
           <min_intensity>0</min_intensity>
+          <min_range>1</min_range>
+          <max_range>20</max_range>
+          <gaussianNoise>0.05</gaussianNoise>
       </plugin>
 
       <always_on>true</always_on>
