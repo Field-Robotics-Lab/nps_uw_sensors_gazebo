@@ -244,6 +244,7 @@ void NpsGazeboRosGpuSingleBeamSonar::OnScan(ConstLaserScanStampedPtr &_msg)
 
   // calculate range and intensity from Gazebo array
   float angle = laser_msg.angle_min;
+  float increment = laser_msg.angle_increment;
   float intensity = 0.0;
   float intensity_ref = 2.6e-16;
   float absorption = 5e-5;
@@ -271,13 +272,15 @@ void NpsGazeboRosGpuSingleBeamSonar::OnScan(ConstLaserScanStampedPtr &_msg)
     transmission_loss = 20 * log(range) + absorption*range;
 
 
+    /* echo level will eventually be used to display intensities in dB on a sonar viewer
     // calculate echo level
     echo_level = source_level - 2 * (transmission_loss) + target_strength;
+    */
 
     // next
     ++range_it;
     ++intensity_it;
-    angle = laser_msg.angle_increment;
+    angle = angle + increment;
   }
 
   // store calculated range and intensity
