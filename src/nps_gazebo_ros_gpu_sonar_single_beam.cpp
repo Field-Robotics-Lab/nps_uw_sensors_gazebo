@@ -266,13 +266,13 @@ void NpsGazeboRosGpuSingleBeamSonar::OnScan(ConstLaserScanStampedPtr &_msg)
     // calculate target strength
 
     target_strength = 10 * log(intensity/intensity_ref)
-    */
+ 
 
     // calculate transmission loss
     transmission_loss = 20 * log(range) + absorption*range;
 
 
-    /* echo level will eventually be used to display intensities in dB on a sonar viewer
+    // echo level will eventually be used to display intensities in dB on a sonar viewer
     // calculate echo level
     echo_level = source_level - 2 * (transmission_loss) + target_strength;
     */
