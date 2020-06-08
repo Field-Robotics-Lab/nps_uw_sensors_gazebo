@@ -3,24 +3,23 @@
   <model name="SeaBat-F50 FLS">
     <link name="forward_sonar_link">
       <inertial>
-        <pose>0 0 0 1.570796 0 0</pose>
-        <mass>11.7</mass>
+        <pose>0 0 0 0 0 1.570796</pose>
+        <mass>8.2</mass>
         <inertia>
-          <ixx>0.0306</ixx> <!-- 11.7*.56^2/12 if receiver mounted at end -->
+          <ixx>0.151702733</ixx>
           <ixy>0</ixy>
           <ixz>0</ixz>
-          <iyy>0</iyy>
+          <iyy>0.012730835</iyy>
           <iyz>0</iyz>
-          <izz>0.0306</izz>
+          <izz>0.150214768</izz>
         </inertia>
       </inertial>
       <collision name="collision">
-        <pose>0 0 0 1.570796 0 0</pose>
+        <pose>0 0 0 0 0 1.570796</pose>
         <geometry>
-          <cylinder>
-            <radius>0.051</radius>
-            <length>0.56</length>
-          </cylinder>
+          <box>
+            <size>0.46 0.0907 0.102</size>
+          </box>
         </geometry>
       </collision>
       <visual name="visual">
