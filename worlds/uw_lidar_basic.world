@@ -29,20 +29,10 @@
     </include>
 
     <!-- Include lidar -->
-    <model name="nps_gazebo_ros_pulse_lidar_standalone">
-    <include>
-      <uri>model://3dad_sl3</uri>
-      <pose>2.1 1.0 0.5 0 0 4.71238898038</pose>
-    </include>
-    <plugin name="pulse_lidar_control" filename="libgazebo_ros_pulse_lidar_plugin.so" >
-      <pan_position>-2</pan_position>
-      <tilt_position>0</tilt_position>
-    </plugin>
-    </model>
-
-    <!-- Include cylinder target -->
-  <model name ='cylinder_pedestal'>
-    <link name='link'>
+  <model name="nps_gazebo_ros_static_lidar_robot">
+    <static>false</static>
+    <pose>2.1 1.0 0.25 0 0 0</pose>
+    <link name='pedestal_link'>
       <inertial>
         <mass>1</mass>
         <inertia>
@@ -95,9 +85,37 @@
       <enable_wind>0</enable_wind>
       <kinematic>0</kinematic>
     </link>
-    <static>true</static>
-    <pose>2.1 1.0 0.25 0 0 0</pose>
+
+    <include>
+      <uri>model://3dad_sl3</uri>
+      <pose>0 0 0.25 0 0 1.57079632679</pose>
+    </include>
+    <plugin name="pulse_lidar_control" filename="libgazebo_ros_pulse_lidar_plugin.so" >
+      <pan_position>-1.57079632679</pan_position>
+      <tilt_position>0</tilt_position>
+    </plugin>
+
+    <joint type="fixed" name="lidar_stand_bolt">
+      <!-- Position the joint at the bottom of the top link -->
+      <pose>0 0 -0.05 0 0 0</pose>
+      <!-- Use the base link as the parent of the joint -->
+      <parent>pedestal_link</parent>
+      <!-- Use the top link as the child of the joint -->
+      <child>3dad_sl3::base</child>
+    </joint>
+
+    <joint type="fixed" name="pedestal_world_bolt">
+      <!-- Use the base link as the parent of the joint -->
+      <pose>0 0 -0.25 0 0 0</pose>
+
+      <parent>world</parent>
+      <!-- Use the top link as the child of the joint -->
+      <child>pedestal_link</child>
+    </joint>
+
+
   </model>
+
 
 
   </world>

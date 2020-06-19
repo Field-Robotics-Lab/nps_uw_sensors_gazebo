@@ -110,7 +110,7 @@
 
    <link name="3dad_sl3_link">
     <visual name="3dad_sl3_visual">
-     <pose>0 0 0.2735 0 0 0</pose>
+     <pose>0 0 0.2735 0 0 3.14159265359</pose>
      <geometry>
        <mesh> 
          <uri>model://3dad_sl3/mesh/3dad_sl3.dae</uri>
@@ -128,6 +128,7 @@
     </collision>
     <inertial>
      <mass>20.9</mass>
+     <pose>0 0 0.2735 0 0 0</pose>
      <inertia>
        <ixx>0.27709917</ixx>
        <iyy>0.11521125</iyy>
@@ -151,7 +152,7 @@
       <!-- Position the ray sensor based on the specification. Also rotate
            it by 90 degrees around the X-axis so that the <horizontal> rays
            become vertical -->
-      <pose>0.014 -0.19 0.262 3.141579 0 -1.570796</pose>
+      <pose>-0.014 0.2 0.28 0 0 1.570796</pose>
 
       <!-- Enable visualization to see the rays in the GUI -->
       <visualize>true</visualize>
@@ -218,9 +219,8 @@
        <xyz>0 0 1</xyz>
        <!-- Limit refers to the range of motion of the joint -->
        <limit>
-         <!-- Use a very large number to indicate a continuous revolution -->
-         <lower>-3.05433</lower>
-         <upper>3.05433</upper>
+         <lower>-3.14159265359</lower>
+         <upper>3.14159265359</upper>
        </limit>     
      </axis>
    </joint>
@@ -228,7 +228,7 @@
    <!-- Each joint must have a unique name -->
    <joint type="revolute" name="base_tray_joint">
      <!-- Position the joint at the bottom of the top link -->
-     <pose>0 0 0 0 0 -1.570796</pose>
+     <pose>0 0 0 0 0 0</pose>
      <!-- Use the base link as the parent of the joint -->
      <parent>top</parent>
      <!-- Use the top link as the child of the joint -->
@@ -236,12 +236,11 @@
      <!-- The axis defines the joint's degree of freedom -->
      <axis>
        <!-- Revolve around the z-axis -->
-       <xyz>1 0 0</xyz>
+       <xyz>0 1 0</xyz>
        <!-- Limit refers to the range of motion of the joint -->
        <limit>
-         <!-- Use a very large number to indicate a continuous revolution -->
-         <lower>-1.57079632679</lower>
-         <upper>1.57079632679</upper>
+         <lower>-0.26179938779</lower>
+         <upper>0.26179938779</upper>
        </limit>
      </axis>
    </joint>

@@ -53,10 +53,10 @@ namespace gazebo
 //   std::string name = this->joint->GetScopedName();
    
      // Setup a P-controller, with a gain of 0.1.
-     this->pan_pid = common::PID(0.01, 0, 0.001,0,0,0.001, -0.001);
+     this->pan_pid = common::PID(0.1, 0, 0.7);
 
 //   // Setup a P-controller, with a gain of 0.1.
-     this->tilt_pid = common::PID(0.1, 0.01, 0.001);
+     this->tilt_pid = common::PID(14, 0.3, 2);
 
      // Apply the P0-controller to the joint.
      this->model->GetJointController()->SetPositionPID(
