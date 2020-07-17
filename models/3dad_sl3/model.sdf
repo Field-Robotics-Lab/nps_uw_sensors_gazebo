@@ -225,7 +225,7 @@
    </joint>
 
    <!-- Each joint must have a unique name -->
-   <joint type="revolute" name="base_tray_joint">
+   <joint type="revolute" name="top_tray_joint">
      <!-- Position the joint at the bottom of the top link -->
      <pose>0 0 0 0 0 3.14159265359</pose>
      <!-- Use the base link as the parent of the joint -->
