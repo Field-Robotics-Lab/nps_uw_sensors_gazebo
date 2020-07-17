@@ -31,17 +31,17 @@
     <!-- Include lidar -->
   <model name="nps_gazebo_ros_static_lidar_robot">
     <static>false</static>
-    <pose>2.1 1.0 0.25 0 0 0</pose>
+    <pose>2.1 1.0 0.26 0 0 0</pose>
     <link name='pedestal_link'>
       <inertial>
-        <mass>1</mass>
+        <mass>40</mass>
         <inertia>
-          <ixx>0.145833</ixx>
+          <ixx>1.458333</ixx>
           <ixy>0</ixy>
           <ixz>0</ixz>
-          <iyy>0.145833</iyy>
+          <iyy>1.458333</iyy>
           <iyz>0</iyz>
-          <izz>0.125</izz>
+          <izz>1.25</izz>
         </inertia>
         <pose frame=''>0 0 0 0 -0 0</pose>
       </inertial>
