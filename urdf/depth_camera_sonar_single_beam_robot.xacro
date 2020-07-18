@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<robot name="depth_camera_sonar_single_beam_robot"
+       xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:include filename="$(find nps_uw_sensors_gazebo)/urdf/depth_camera_sonar_single_beam.xacro" />
+
+  <link name="world"/>
+
+  <xacro:depth_camera_sonar_single_beam
+            namespace="depth_camera_sonar_single_beam_robot"
+            suffix="1"
+            parent_link="world"
+            topic="depth_camera_sonar_single_beam"
+            beam_width="0.2"
+            samples="3"
+            update_rate="15"
+            min_range="0.1"
+            max_range="7.0">
+    <origin xyz="2.1 1.0 1.0" rpy="0 0 1.5709"/>
+  </xacro:depth_camera_sonar_single_beam>
+
+</robot>
+

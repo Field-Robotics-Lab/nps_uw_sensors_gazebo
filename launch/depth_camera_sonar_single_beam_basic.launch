@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- world -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(find nps_uw_sensors_gazebo)/worlds/sonar_single_beam_basic.world"/>
+    <arg name="verbose" value="true"/>
+  </include>
+
+<!-- depth_camera_sonar_single_beam_robot xacro -->
+  <param name="depth_camera_sonar_single_beam_robot"
+         command="$(find xacro)/xacro '$(find nps_uw_sensors_gazebo)/urdf/depth_camera_sonar_single_beam_robot.xacro'"/>
+
+<!-- spawn depth_camera_sonar_single_beam_robot -->
+  <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model"
+        respawn="false" output="screen"
+        args="-urdf -model nps_depth_camera_sonar_single_beam_model -param depth_camera_sonar_single_beam_robot" />
+
+</launch>
+
