@@ -126,6 +126,7 @@
      </geometry>
     </collision>
     <inertial>
+     <!-- <mass>8.2</mass>  water-->
      <mass>20.9</mass>
      <pose>0 0 0.2735 0 0 0</pose>
      <inertia>
@@ -164,12 +165,12 @@
          <!-- The horizontal beams -->
          <horizontal>
            <!-- # of horizontal beams simulates a spinning beam -->
-           <samples>145</samples>
+           <samples>1450</samples>
            <!-- Resolution is multiplied by samples to determine number of
                 simulated beams vs interpolated beams. See:
                 http://sdformat.org/spec?ver=1.6&elem=sensor#horizontal_resolution
                 -->
-           <resolution>1</resolution>
+           <resolution>0.1</resolution>
            <!-- Minimum angle in radians -->
            <min_angle>-0.26179938779</min_angle>
            <!-- Maximum angle in radians -->
@@ -177,8 +178,8 @@
          </horizontal>
 
          <vertical>
-           <samples>145</samples>
-           <resolution>1</resolution>
+           <samples>1450</samples>
+           <resolution>0.1</resolution>
            <min_angle>-0.26179938779</min_angle>
            <max_angle>0.26179938779</max_angle>
          </vertical>
