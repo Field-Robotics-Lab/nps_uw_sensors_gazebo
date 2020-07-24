@@ -107,13 +107,21 @@ namespace gazebo
     private: void PointCloudConnect();
     private: void PointCloudDisconnect();
 
-    /// \brief Keep track of number of connctions for point clouds
+    /// \brief Keep track of number of connctions for Sonar point clouds
+    private: int sonar_point_cloud_connect_count_;
+    private: void SonarPointCloudConnect();
+    private: void SonarPointCloudDisconnect();
+
+    /// \brief Keep track of number of connctions for images
     private: int depth_image_connect_count_;
     private: void DepthImageConnect();
     private: void DepthImageDisconnect();
     private: int normals_image_connect_count_;
     private: void NormalsImageConnect();
     private: void NormalsImageDisconnect();
+    private: int ray_image_connect_count_;
+    private: void RayImageConnect();
+    private: void RayImageDisconnect();
     private: common::Time last_depth_image_camera_info_update_time_;
 
     private: bool FillPointCloudHelper(sensor_msgs::PointCloud2 &point_cloud_msg,
@@ -128,20 +136,33 @@ namespace gazebo
                                   uint32_t rows_arg, uint32_t cols_arg,
                                   uint32_t step_arg, void* data_arg);
 
+    private: void FillRayImage();
+    private: void FillSonarPointCloud();
+
     /// \brief A pointer to the ROS node.  A node will be instantiated if it does not exist.
     private: ros::Publisher point_cloud_pub_;
+    private: ros::Publisher sonar_point_cloud_pub_;
+
     private: ros::Publisher depth_image_pub_;
     private: ros::Publisher normals_image_pub_;
+    private: ros::Publisher ray_image_pub_;
 
     /// \brief PointCloud2 point cloud message
     private: sensor_msgs::PointCloud2 point_cloud_msg_;
+    private: sensor_msgs::PointCloud2 sonar_point_cloud_msg_;
+
     private: sensor_msgs::Image depth_image_msg_;
     private: sensor_msgs::Image normals_image_msg_;
+    private: sensor_msgs::Image ray_image_msg_;
+
 
     private: double point_cloud_cutoff_;
 
     /// \brief ROS image topic name
     private: std::string point_cloud_topic_name_;
+
+    /// \brief ROS image Sonar topic name
+    private: std::string sonar_point_cloud_topic_name_;
 
     private: void InfoConnect();
     private: void InfoDisconnect();
@@ -152,6 +173,7 @@ namespace gazebo
     /// \brief image where each pixel contains the depth information
     private: std::string depth_image_topic_name_;
     private: std::string normals_image_topic_name_;
+    private: std::string ray_image_topic_name_;
     private: std::string depth_image_camera_info_topic_name_;
     private: int depth_info_connect_count_;
     private: void DepthInfoConnect();

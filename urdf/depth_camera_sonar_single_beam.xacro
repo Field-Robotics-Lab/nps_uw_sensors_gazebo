@@ -48,8 +48,10 @@
 	  <imageTopicName>image_raw</imageTopicName>
 	  <cameraInfoTopicName>image_raw/camera_info</cameraInfoTopicName>
 	  <pointCloudTopicName>point_cloud</pointCloudTopicName>
+	  <sonarPointCloudTopicName>sonar_point_cloud</sonarPointCloudTopicName>
 	  <depthImageTopicName>image_depth</depthImageTopicName>
 	  <normalsImageTopicName>image_normals</normalsImageTopicName>
+	  <rayImageTopicName>image_ray</rayImageTopicName>
 	  <depthImageCameraInfoTopicName>image_depth/camera_info</depthImageCameraInfoTopicName>
 
           <frameName>forward_sonar_optical_link</frameName>
@@ -66,7 +68,7 @@
         <horizontal_fov>${beam_width}</horizontal_fov>
         <image>
           <width>${samples}</width>
-          <height>1</height>
+          <height>${samples}</height>
           <format>R8G8B8</format>
         </image>
         <clip>

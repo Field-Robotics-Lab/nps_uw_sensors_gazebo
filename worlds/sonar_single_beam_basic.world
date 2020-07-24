@@ -22,11 +22,13 @@
     </include>
 
     <!-- Include cylinder target -->
+<!--
     <include>
       <uri>model://cylinder_target</uri>
       <pose>2.1 3.0 1.0 0 0 0</pose>
       <static>true</static>
     </include>
+-->
 
   </world>
 </sdf>

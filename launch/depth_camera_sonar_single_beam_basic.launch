@@ -15,5 +15,20 @@
         respawn="false" output="screen"
         args="-urdf -model nps_depth_camera_sonar_single_beam_model -param depth_camera_sonar_single_beam_robot" />
 
+    <!-- rqt_image_view for image depth -->
+    <node name="rqt_image_view_image_depth" pkg="rqt_image_view"
+          type="rqt_image_view" args="/depth_camera_sonar_single_beam_sensor_camera/image_depth">
+    </node>
+
+    <!-- rqt_image_view for image normals -->
+    <node name="rqt_image_view_image_normals" pkg="rqt_image_view"
+          type="rqt_image_view" args="/depth_camera_sonar_single_beam_sensor_camera/image_normals">
+    </node>
+
+    <!-- rqt_image_view for image rays -->
+    <node name="rqt_image_view_image_ray" pkg="rqt_image_view"
+          type="rqt_image_view" args="/depth_camera_sonar_single_beam_sensor_camera/image_ray">
+    </node>
+
 </launch>
 
