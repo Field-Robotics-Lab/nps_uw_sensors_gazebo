@@ -41,3 +41,6 @@ install(DIRECTORY launch
         DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
         PATTERN "*~" EXCLUDE)
 
+# for Python scripts
+catkin_install_python(PROGRAMS scripts/depth_camera_sonar.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})

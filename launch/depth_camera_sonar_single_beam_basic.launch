@@ -15,6 +15,12 @@
         respawn="false" output="screen"
         args="-urdf -model nps_depth_camera_sonar_single_beam_model -param depth_camera_sonar_single_beam_robot" />
 
+    <!-- depth camera depth and normals to sonar script -->
+    <node name="depth_and_normals_to_sonar" pkg="nps_uw_sensors_gazebo"
+          type="depth_camera_sonar.py"
+          args="1.6 1.6 3 3 1.0 1.0">
+    </node>
+
     <!-- rqt_image_view for image depth -->
     <node name="rqt_image_view_image_depth" pkg="rqt_image_view"
           type="rqt_image_view" args="/depth_camera_sonar_single_beam_sensor_camera/image_depth">
