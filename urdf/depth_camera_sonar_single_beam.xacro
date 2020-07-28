@@ -67,8 +67,12 @@
       <camera>
         <horizontal_fov>${beam_width}</horizontal_fov>
         <image>
+          <width>37</width>
+          <height>9</height>
+<!--
           <width>${samples}</width>
           <height>${samples}</height>
+-->
           <format>R8G8B8</format>
         </image>
         <clip>
