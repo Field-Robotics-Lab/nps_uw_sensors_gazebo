@@ -18,7 +18,7 @@
     <!-- depth camera depth and normals to sonar script -->
     <node name="depth_and_normals_to_sonar" pkg="nps_uw_sensors_gazebo"
           type="depth_camera_sonar.py"
-          args="1.6 0.4 37 9 1.0 1.0">
+          args="1.6 37 9 1.0 1.0">
     </node>
 
     <!-- rqt_image_view for image depth -->
