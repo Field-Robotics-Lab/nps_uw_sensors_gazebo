@@ -2,16 +2,16 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
   <!-- note: a ray count of less than (3,1) causes Ogre::AxisAlignedBox error -->
-  <xacro:macro name="depth_camera_sonar_single_beam" params="namespace suffix parent_link topic beam_width horiz_count vert_count update_rate min_range max_range *origin">
+  <xacro:macro name="depth_camera_sonar" params="namespace suffix parent_link topic beam_width horiz_count vert_count update_rate min_range max_range *origin">
 
     <!-- joint to Sonar link -->
-    <joint name="${namespace}_depth_camera_sonar_single_beam${suffix}_joint" type="fixed">
+    <joint name="${namespace}_depth_camera_sonar${suffix}_joint" type="fixed">
       <parent link="${parent_link}" />
-      <child link="${namespace}/depth_camera_sonar_single_beam${suffix}_link" />
+      <child link="${namespace}/depth_camera_sonar${suffix}_link" />
       <xacro:insert_block name="origin" />
     </joint>
 
-    <link name="${namespace}/depth_camera_sonar_single_beam${suffix}_link">
+    <link name="${namespace}/depth_camera_sonar${suffix}_link">
       <inertial>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <mass value="1" />
@@ -31,19 +31,19 @@
       </visual>
     </link>
 
-  <gazebo reference="${namespace}/depth_camera_sonar_single_beam${suffix}_link">
+  <gazebo reference="${namespace}/depth_camera_sonar${suffix}_link">
 
     <selfCollide>false</selfCollide>
 
-    <sensor type="depth" name="depth_camera_sonar_single_beam_sensor">
+    <sensor type="depth" name="depth_camera_sonar_sensor">
       <always_on>true</always_on>
       <update_rate>${update_rate}</update_rate>
       <visualize>true</visualize>
       <topic>${topic}</topic>
       <pose>0 0 0 0 0 0</pose>
-      <plugin name="nps_depth_camera_sonar_single_beam_plugin" filename="libnps_gazebo_ros_depth_camera_sonar_single_beam_plugin.so">
+      <plugin name="nps_depth_camera_sonar_plugin" filename="libnps_gazebo_ros_depth_camera_sonar_single_beam_plugin.so">
 
-	  <cameraName>depth_camera_sonar_single_beam_sensor_camera</cameraName>
+	  <cameraName>depth_camera_sonar_sensor_camera</cameraName>
 	  <!-- ROS publication topics -->
 	  <imageTopicName>image_raw</imageTopicName>
 	  <cameraInfoTopicName>image_raw/camera_info</cameraInfoTopicName>

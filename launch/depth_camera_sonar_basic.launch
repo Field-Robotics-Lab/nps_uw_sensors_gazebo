@@ -2,18 +2,18 @@
 <launch>
   <!-- world -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
-    <arg name="world_name" value="$(find nps_uw_sensors_gazebo)/worlds/sonar_single_beam_basic.world"/>
+    <arg name="world_name" value="$(find nps_uw_sensors_gazebo)/worlds/depth_camera_sonar_basic.world"/>
     <arg name="verbose" value="true"/>
   </include>
 
-<!-- depth_camera_sonar_single_beam_robot xacro -->
-  <param name="depth_camera_sonar_single_beam_robot"
-         command="$(find xacro)/xacro '$(find nps_uw_sensors_gazebo)/urdf/depth_camera_sonar_single_beam_robot.xacro'"/>
+<!-- depth_camera_sonar_robot xacro -->
+  <param name="depth_camera_sonar_robot"
+         command="$(find xacro)/xacro '$(find nps_uw_sensors_gazebo)/urdf/depth_camera_sonar_robot.xacro'"/>
 
-<!-- spawn depth_camera_sonar_single_beam_robot -->
+<!-- spawn depth_camera_sonar_robot -->
   <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model"
         respawn="false" output="screen"
-        args="-urdf -model nps_depth_camera_sonar_single_beam_model -param depth_camera_sonar_single_beam_robot" />
+        args="-urdf -model nps_depth_camera_sonar_model -param depth_camera_sonar_robot" />
 
     <!-- this Python ROS node converts depth and normals to Sonar outputs -->
     <node name="depth_and_normals_to_sonar" pkg="nps_uw_sensors_gazebo"
@@ -23,7 +23,7 @@
 
     <!-- rqt_image_view for image depth -->
     <node name="rqt_image_view_image_depth" pkg="rqt_image_view"
-          type="rqt_image_view" args="/depth_camera_sonar_single_beam_sensor_camera/image_depth">
+          type="rqt_image_view" args="/depth_camera_sonar_sensor_camera/image_depth">
     </node>
 
     <!-- rqt_image_view for image rays -->

@@ -14,6 +14,10 @@ from sensor_msgs.msg import Image
 # Notes:
 # Arguments passed here from the launch file must match arguments in SDF.
 
+# subscriber name constants, should be replaced with sdf inputs
+IMAGE_DEPTH_TOPIC = "depth_camera_sonar_sensor_camera/image_depth"
+IMAGE_NORMALS_TOPIC = "depth_camera_sonar_sensor_camera/image_normals"
+
 # publisher name constants, should be replaced with sdf inputs
 RAY_IMAGE_TOPIC = "sonar_ray_image"
 RAY_POINT_CLOUD_TOPIC = "sonar_ray_point_cloud"
@@ -151,12 +155,10 @@ class SonarNode:
                                (self.vert_count, self.horiz_count), np.float32)
 
         # ROS subscribers
-        self.depth_sub = rospy.Subscriber(
-               "depth_camera_sonar_single_beam_sensor_camera/image_depth",
-               Image, self.on_depth_image)
-        self.normals_sub = rospy.Subscriber(
-               "depth_camera_sonar_single_beam_sensor_camera/image_normals",
-               Image, self.on_normals_image)
+        self.depth_sub = rospy.Subscriber(IMAGE_DEPTH_TOPIC,
+                                            Image, self.on_depth_image)
+        self.normals_sub = rospy.Subscriber(IMAGE_NORMALS_TOPIC,
+                                            Image, self.on_normals_image)
 
         # ROS publishers
         self.ray_pub = rospy.Publisher(RAY_IMAGE_TOPIC, Image, queue_size=10)
