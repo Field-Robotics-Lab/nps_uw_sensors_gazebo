@@ -15,7 +15,7 @@
         respawn="false" output="screen"
         args="-urdf -model nps_depth_camera_sonar_single_beam_model -param depth_camera_sonar_single_beam_robot" />
 
-    <!-- depth camera depth and normals to sonar script -->
+    <!-- this Python ROS node converts depth and normals to Sonar outputs -->
     <node name="depth_and_normals_to_sonar" pkg="nps_uw_sensors_gazebo"
           type="depth_camera_sonar.py"
           args="1.6 37 9 1.0 1.0">
@@ -26,14 +26,9 @@
           type="rqt_image_view" args="/depth_camera_sonar_single_beam_sensor_camera/image_depth">
     </node>
 
-    <!-- rqt_image_view for image normals -->
-    <node name="rqt_image_view_image_normals" pkg="rqt_image_view"
-          type="rqt_image_view" args="/depth_camera_sonar_single_beam_sensor_camera/image_normals">
-    </node>
-
     <!-- rqt_image_view for image rays -->
     <node name="rqt_image_view_image_ray" pkg="rqt_image_view"
-          type="rqt_image_view" args="/depth_camera_sonar_single_beam_sensor_camera/image_ray">
+          type="rqt_image_view" args="/sonar_ray_image">
     </node>
 
 </launch>

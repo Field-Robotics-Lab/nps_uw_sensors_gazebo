@@ -14,8 +14,11 @@ from sensor_msgs.msg import Image
 # Notes:
 # Arguments passed here from the launch file must match arguments in SDF.
 
-# ROS-CV bridge
-bridge = CvBridge()
+# publisher name constants, should be replaced with sdf inputs
+RAY_IMAGE_TOPIC = "sonar_ray_image"
+RAY_POINT_CLOUD_TOPIC = "sonar_ray_point_cloud"
+BEAM_IMAGE_TOPIC = "sonar_beam_image"
+BEAM_POINT_CLOUD_TOPIC = "sonar_beam_point_cloud"
 
 # get angle beam width, vert_count, horiz_count for one Sonar beam
 def depth_camera_args():
@@ -26,6 +29,8 @@ def depth_camera_args():
     parser.add_argument("vert_count", type=int, help="number of rays vert")
     parser.add_argument("lobe_k1", type=float, help="Sonar lobe constant k1")
     parser.add_argument("lobe_k2", type=float, help="Sonar lobe constant k2")
+    parser.add_argument("__name", type=str, help="launch adds name, unused")
+    parser.add_argument("__log", type=str, help="launch adds log, unused")
     args = parser.parse_args()
     return args.beam_width, args.horiz_count, args.vert_count, \
            args.lobe_k1, args.lobe_k2
@@ -90,7 +95,7 @@ def calculate_depth_power_matrix(depth_matrix,
     for column, row, horizontal_angle, vertical_angle in ray_matrix_iterator(
                                      beam_width, horiz_count, vert_count):
         depth = depth_matrix[row,column]
-        depth_power = 1 # use equation
+        depth_power = depth # use equation instead
         depth_power_matrix[row, column] = depth_power
     return depth_power_matrix
 
@@ -154,13 +159,15 @@ class SonarNode:
                Image, self.on_normals_image)
 
         # ROS publishers
-        self.ray_pub = rospy.Publisher("image_sonar_rays_topic", Image,
-                                       queue_size=10)
+        self.ray_pub = rospy.Publisher(RAY_IMAGE_TOPIC, Image, queue_size=10)
+
+        # ROS-CV bridge
+        self.bridge = CvBridge()
 
     # calculate depth power matrix from Gazebo depth_image and cache it
     def on_depth_image(self, depth_image):
         rospy.loginfo(rospy.get_caller_id() + " received depth_image")
-        self.depth_matrix = bridge.imgmsg_to_cv2(depth_image)
+        self.depth_matrix = self.bridge.imgmsg_to_cv2(depth_image)
         print("depth image shape: ", self.depth_matrix.shape)
         if self.depth_matrix.shape != (self.vert_count, self.horiz_count):
             # bad
@@ -175,7 +182,7 @@ class SonarNode:
     # then calculate ray power and beam power
     def on_normals_image(self, normals_image):
         rospy.loginfo(rospy.get_caller_id() + " received normals_image")
-        normals_matrix_f4 = bridge.imgmsg_to_cv2(normals_image)
+        normals_matrix_f4 = self.bridge.imgmsg_to_cv2(normals_image)
         print("normals image shape: ", normals_matrix_f4.shape)
         if normals_matrix_f4.shape != (self.vert_count, self.horiz_count, 4):
             # bad
@@ -199,7 +206,8 @@ class SonarNode:
                                     self.retro_power_matrix)
 
         # advertise ray_matrix to ROS, keep ray_matrix's 32FC1 format
-        self.ray_pub.publish(bridge.cv2_to_imgmsg(ray_matrix, "passthrough"))
+        self.ray_pub.publish(self.bridge.cv2_to_imgmsg(ray_matrix,
+                                                       "passthrough"))
 #        print("Ray power matrix", ray_matrix)
 
 #        # create and publish the ray point cloud
