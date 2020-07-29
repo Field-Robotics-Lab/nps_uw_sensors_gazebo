@@ -61,7 +61,7 @@ GazeboRosDepthCamera::~GazeboRosDepthCamera()
 // Load the controller
 void GazeboRosDepthCamera::Load(sensors::SensorPtr _parent, sdf::ElementPtr _sdf)
 {
-  std::cout << "nps_gazebo_ros_depth_camera_sonar_single_beam zzzzzzzzzzzzzzzz";
+  std::cout << "nps_gazebo_ros_depth_camera_sonar_single_beam";
   DepthCameraPlugin::Load(_parent, _sdf);
 
   // Make sure the ROS node for Gazebo has already been initialized
@@ -92,12 +92,6 @@ void GazeboRosDepthCamera::Load(sensors::SensorPtr _parent, sdf::ElementPtr _sdf
   else
     this->point_cloud_topic_name_ = _sdf->GetElement("pointCloudTopicName")->Get<std::string>();
 
-  // Sonar point cloud stuff
-  if (!_sdf->HasElement("sonarPointCloudTopicName"))
-    this->sonar_point_cloud_topic_name_ = "sonar_points";
-  else
-    this->sonar_point_cloud_topic_name_ = _sdf->GetElement("sonarPointCloudTopicName")->Get<std::string>();
-
   // depth image and normals stuff
   if (!_sdf->HasElement("depthImageTopicName"))
     this->depth_image_topic_name_ = "depth/image_raw";
@@ -108,11 +102,6 @@ void GazeboRosDepthCamera::Load(sensors::SensorPtr _parent, sdf::ElementPtr _sdf
     this->normals_image_topic_name_ = "normals/image_raw";
   else
     this->normals_image_topic_name_ = _sdf->GetElement("normalsImageTopicName")->Get<std::string>();
-
-  if (!_sdf->HasElement("rayImageTopicName"))
-    this->ray_image_topic_name_ = "ray/image_raw";
-  else
-    this->ray_image_topic_name_ = _sdf->GetElement("rayImageTopicName")->Get<std::string>();
 
   if (!_sdf->HasElement("depthImageCameraInfoTopicName"))
     this->depth_image_camera_info_topic_name_ = "depth/camera_info";
@@ -138,14 +127,6 @@ void GazeboRosDepthCamera::Advertise()
       ros::VoidPtr(), &this->camera_queue_);
   this->point_cloud_pub_ = this->rosnode_->advertise(point_cloud_ao);
 
-  ros::AdvertiseOptions sonar_point_cloud_ao =
-    ros::AdvertiseOptions::create<sensor_msgs::PointCloud2 >(
-      this->sonar_point_cloud_topic_name_,1,
-      boost::bind( &GazeboRosDepthCamera::SonarPointCloudConnect,this),
-      boost::bind( &GazeboRosDepthCamera::SonarPointCloudDisconnect,this),
-      ros::VoidPtr(), &this->camera_queue_);
-  this->sonar_point_cloud_pub_ = this->rosnode_->advertise(sonar_point_cloud_ao);
-
   ros::AdvertiseOptions depth_image_ao =
     ros::AdvertiseOptions::create< sensor_msgs::Image >(
       this->depth_image_topic_name_,1,
@@ -161,14 +142,6 @@ void GazeboRosDepthCamera::Advertise()
       boost::bind( &GazeboRosDepthCamera::NormalsImageDisconnect,this),
       ros::VoidPtr(), &this->camera_queue_);
   this->normals_image_pub_ = this->rosnode_->advertise(normals_image_ao);
-
-  ros::AdvertiseOptions ray_image_ao =
-    ros::AdvertiseOptions::create< sensor_msgs::Image >(
-      this->ray_image_topic_name_,1,
-      boost::bind( &GazeboRosDepthCamera::RayImageConnect,this),
-      boost::bind( &GazeboRosDepthCamera::RayImageDisconnect,this),
-      ros::VoidPtr(), &this->camera_queue_);
-  this->ray_image_pub_ = this->rosnode_->advertise(ray_image_ao);
 
   ros::AdvertiseOptions depth_image_camera_info_ao =
     ros::AdvertiseOptions::create<sensor_msgs::CameraInfo>(
@@ -196,38 +169,6 @@ void GazeboRosDepthCamera::PointCloudDisconnect()
   (*this->image_connect_count_)--;
   if (this->point_cloud_connect_count_ <= 0)
     this->parentSensor->SetActive(false);
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// Increment count
-void GazeboRosDepthCamera::SonarPointCloudConnect()
-{
-std::cout << "SonarPointCloudConnect\n";
-  this->sonar_point_cloud_connect_count_++;
-  this->parentSensor->SetActive(true);
-}
-////////////////////////////////////////////////////////////////////////////////
-// Decrement count
-void GazeboRosDepthCamera::SonarPointCloudDisconnect()
-{
-  // zz never turns off parentSensor
-  this->sonar_point_cloud_connect_count_--;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// Increment count
-void GazeboRosDepthCamera::RayImageConnect()
-{
-std::cout << "DepthImageConnect\n";
-  this->ray_image_connect_count_++;
-  this->parentSensor->SetActive(true);
-}
-////////////////////////////////////////////////////////////////////////////////
-// Decrement count
-void GazeboRosDepthCamera::RayImageDisconnect()
-{
-std::cout << "DepthImageDisconnect\n";
-  this->ray_image_connect_count_--;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -296,8 +237,6 @@ std::cout << "OnNewDepthFrame\n";
     if (this->point_cloud_connect_count_ <= 0 &&
         this->depth_image_connect_count_ <= 0 &&
         this->normals_image_connect_count_ <= 0 &&
-        this->ray_image_connect_count_ <= 0 &&
-        this->sonar_point_cloud_connect_count_ <= 0 &&
         (*this->image_connect_count_) <= 0)
     {
       this->parentSensor->SetActive(false);
@@ -473,6 +412,44 @@ void GazeboRosDepthCamera::FillDepthImage(const float *_src)
   this->lock_.unlock();
 }
 
+// Fill depth information
+bool GazeboRosDepthCamera::FillDepthImageHelper(
+    sensor_msgs::Image& image_msg,
+    uint32_t rows_arg, uint32_t cols_arg,
+    uint32_t step_arg, void* data_arg)
+{
+  image_msg.encoding = sensor_msgs::image_encodings::TYPE_32FC1;
+  image_msg.height = rows_arg;
+  image_msg.width = cols_arg;
+  image_msg.step = sizeof(float) * cols_arg;
+  image_msg.data.resize(rows_arg * cols_arg * sizeof(float));
+  image_msg.is_bigendian = 0;
+
+  const float bad_point = std::numeric_limits<float>::quiet_NaN();
+
+  float* dest = (float*)(&(image_msg.data[0]));
+  float* toCopyFrom = (float*)data_arg;
+  int index = 0;
+
+  // convert depth to image
+std::cout << "FillDepthImageHelper rows: " << rows_arg << " cols: " << cols_arg << "\n";
+  for (uint32_t j = 0; j < rows_arg; j++)
+  {
+    for (uint32_t i = 0; i < cols_arg; i++)
+    {
+      float depth = toCopyFrom[index++];
+      if (depth > this->point_cloud_cutoff_)
+      {
+        dest[i + j * cols_arg] = depth;
+      }
+      else //point in the unseeable range
+      {
+        dest[i + j * cols_arg] = bad_point;
+      }
+    }
+  }
+  return true;
+}
 
 // Fill depth information
 bool GazeboRosDepthCamera::FillPointCloudHelper(
@@ -582,8 +559,6 @@ std::cout << "OnNewNormalsFrame\n";
     if (this->point_cloud_connect_count_ <= 0 &&
         this->depth_image_connect_count_ <= 0 &&
         this->normals_image_connect_count_ <= 0 &&
-        this->ray_image_connect_count_ <= 0 &&
-        this->sonar_point_cloud_connect_count_ <= 0 &&
         (*this->image_connect_count_) <= 0)
     {
       this->parentSensor->SetActive(false);
@@ -596,8 +571,8 @@ std::cout << "OnNewNormalsFrame\n";
       if (this->normals_image_connect_count_ > 0)
         this->FillNormalsImage(_normals_image);
 
-        // lets perform Sonar calculations here
-        this->FillRayImage();
+//zz        // lets perform Sonar calculations here
+   //zz     this->FillRayImage();
     }
   }
   else
@@ -641,8 +616,8 @@ bool GazeboRosDepthCamera::FillNormalsImageHelper(
   image_msg.encoding = sensor_msgs::image_encodings::TYPE_32FC4;
   image_msg.height = rows_arg;
   image_msg.width = cols_arg;
-  image_msg.step = sizeof(float) * cols_arg;
-  image_msg.data.resize(rows_arg * cols_arg * sizeof(float)*4);
+  image_msg.step = 4 * sizeof(float) * cols_arg;
+  image_msg.data.resize(rows_arg * cols_arg * sizeof(float) * 4);
   image_msg.is_bigendian = 0;
 
   const float bad_point = std::numeric_limits<float>::quiet_NaN();
@@ -658,8 +633,6 @@ std::cout << "FillNormalsImageHelper rows: " << rows_arg << " cols: " << cols_ar
     for (uint32_t i = 0; i < cols_arg*4; i++)
     {
       float normals = toCopyFrom[index++];
-      std::cout << normals << "  ";
-
 //      if (normals > this->point_cloud_cutoff_)
 //      {
         dest[i + j * cols_arg] = normals;
@@ -669,122 +642,12 @@ std::cout << "FillNormalsImageHelper rows: " << rows_arg << " cols: " << cols_ar
 //        dest[i + j * cols_arg] = bad_point;
 //      }
     }
-    std::cout << "\n";
   }
   return true;
 }
-
-
-
 
 // ************************************************************************
 // end normals
-// ************************************************************************
-
-// ************************************************************************
-// Sonar
-// ************************************************************************
-
-// void FillGaussianImage();
-
-void GazeboRosDepthCamera::FillRayImage()
-{
-  if (this->depth_image_msg_.width == 0) {
-    std::cout << "FillRayImage depth_image_msg is empty\n";
-    return;
-  }
-  if (this->normals_image_msg_.width == 0) {
-    std::cout << "FillRayImage normals_image_msg is empty\n";
-    return;
-  }
-
-  this->lock_.lock();
-  // copy data into image
-  this->ray_image_msg_.header.frame_id = this->frame_name_;
-  // get metadata from depth data
-  this->ray_image_msg_.header.stamp.sec = this->depth_sensor_update_time_.sec;
-  this->ray_image_msg_.header.stamp.nsec = this->depth_sensor_update_time_.nsec;
-  this->ray_image_msg_.encoding = sensor_msgs::image_encodings::TYPE_32FC1;
-  float rows_arg = this->depth_image_msg_.height;
-  float cols_arg = this->depth_image_msg_.width;
-std::cout << "FillRayImage rows: " << rows_arg << " cols: " << cols_arg << "\n";
-  this->ray_image_msg_.height = rows_arg;
-  this->ray_image_msg_.width = cols_arg;
-  this->ray_image_msg_.step = sizeof(float) * cols_arg;
-  this->ray_image_msg_.data.resize(rows_arg * cols_arg * sizeof(float));
-  this->ray_image_msg_.is_bigendian = 0;
-
-  float* from_depth = (float*)(&(this->depth_image_msg_.data[0]));
-  float* from_normals = (float*)(&(this->normals_image_msg_.data[0]));
-//  float* from_beam_kernel = (float*)(&(this->beam_kernel_msg_.data[0]));
-  float* to_ray = (float*)(&(this->ray_image_msg_.data[0]));
-
-  // calculate intensity for each ray
-  for (uint32_t j = 0; j < rows_arg; j++)
-  {
-    for (uint32_t i = 0; i < cols_arg; i++)
-    {
-      int index = i + j * cols_arg;
-      float depth = from_depth[index];
-      float normal = from_normals[index];
-
-      // Sonar equation for point (col, row)
-      float calculated_intensity = depth + normal;
-
-      to_ray[index] = calculated_intensity;
-    }
-  }
-
-  this->ray_image_pub_.publish(this->ray_image_msg_);
-
-  this->lock_.unlock();
-}
-
-// Fill depth information
-bool GazeboRosDepthCamera::FillDepthImageHelper(
-    sensor_msgs::Image& image_msg,
-    uint32_t rows_arg, uint32_t cols_arg,
-    uint32_t step_arg, void* data_arg)
-{
-  image_msg.encoding = sensor_msgs::image_encodings::TYPE_32FC1;
-  image_msg.height = rows_arg;
-  image_msg.width = cols_arg;
-  image_msg.step = sizeof(float) * cols_arg;
-  image_msg.data.resize(rows_arg * cols_arg * sizeof(float));
-  image_msg.is_bigendian = 0;
-
-  const float bad_point = std::numeric_limits<float>::quiet_NaN();
-
-  float* dest = (float*)(&(image_msg.data[0]));
-  float* toCopyFrom = (float*)data_arg;
-  int index = 0;
-
-  // convert depth to image
-std::cout << "FillDepthImageHelper rows: " << rows_arg << " cols: " << cols_arg << "\n";
-  for (uint32_t j = 0; j < rows_arg; j++)
-  {
-    for (uint32_t i = 0; i < cols_arg; i++)
-    {
-      float depth = toCopyFrom[index++];
-      std::cout << depth << "  ";
-
-      if (depth > this->point_cloud_cutoff_)
-      {
-        dest[i + j * cols_arg] = depth;
-      }
-      else //point in the unseeable range
-      {
-        dest[i + j * cols_arg] = bad_point;
-      }
-    }
-    std::cout << "\n";
-  }
-  return true;
-}
-
-
-// ************************************************************************
-// end Sonar
 // ************************************************************************
 
 
