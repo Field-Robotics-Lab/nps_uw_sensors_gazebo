@@ -128,10 +128,10 @@ def powers_to_rays(depth_power_matrix, normals_power_matrix,
                    lobe_power_matrix, retro_power_matrix):
 
     # rays
-    ray_matrix = cv2.multiply(depth_power_matrix, normals_power_matrix)
-    ray_matrix = cv2.multiply(ray_matrix, lobe_power_matrix)
-    ray_matrix = cv2.multiply(ray_matrix, retro_power_matrix)
-    return ray_matrix
+    ray_power_matrix = cv2.multiply(depth_power_matrix, normals_power_matrix)
+    ray_power_matrix = cv2.multiply(ray_power_matrix, lobe_power_matrix)
+    ray_power_matrix = cv2.multiply(ray_power_matrix, retro_power_matrix)
+    return ray_power_matrix
 
 class SonarNode:
     def __init__(self):
@@ -202,23 +202,23 @@ class SonarNode:
     def generate_outputs(self):
 
         # use depth and normals matrices to make rays
-        ray_matrix = powers_to_rays(self.depth_power_matrix,
+        ray_power_matrix = powers_to_rays(self.depth_power_matrix,
                                     self.normals_power_matrix,
                                     self.lobe_power_matrix,
                                     self.retro_power_matrix)
 
-        # advertise ray_matrix to ROS, keep ray_matrix's 32FC1 format
-        self.ray_pub.publish(self.bridge.cv2_to_imgmsg(ray_matrix,
+        # advertise ray_power_matrix to ROS, inheriting the 32FC1 format
+        self.ray_pub.publish(self.bridge.cv2_to_imgmsg(ray_power_matrix,
                                                        "passthrough"))
-#        print("Ray power matrix", ray_matrix)
+#        print("Ray power matrix", ray_power_matrix)
 
 #        # create and publish the ray point cloud
-#        ray_cloud = ray_point_cloud(ray_matrix,
+#        ray_cloud = ray_point_cloud(ray_power_matrix,
 #                    self.beam_width, self.horiz_count, self.vert_count)
 #        self.ray_cloud_pub.publish(ray_cloud)
 #
 #        # create and publish the beam point cloud
-#        beam_cloud = beam_point_cloud(ray_matrix,
+#        beam_cloud = beam_point_cloud(ray_power_matrix,
 #                    self.beam_width, self.horiz_count, self.vert_count)
 #        self.beam_cloud_pub.publish(ray_cloud)
 
