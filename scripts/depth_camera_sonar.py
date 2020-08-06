@@ -39,10 +39,10 @@ def depth_camera_args():
     return args.beam_width, args.horiz_count, args.vert_count, \
            args.lobe_k1, args.lobe_k2
 
-# ray matrix iterator given horizontal and vertical angle and count
-# iterator returns: horiz_index, vert_index, horiz_angle, vert_angle
-# sweeps rays horizontally from top to bottom
-# returns horizontal index, vertical index, horizontal angle, vertical angle
+# Given a horizontal beam width and the horizontal and vertical ray count,
+# calculates the vertical beam width then iteratively sweeps through ray points
+# from top to bottom to return the following index and angular information
+# about each ray: horiz_index, vert_index, horiz_angle, vert_angle.
 def ray_matrix_iterator(beam_width, horiz_count, vert_count):
     beam_height = beam_width * vert_count / horiz_count
     print("beam_width: %f, beam_height: %f, horiz_count %d, vert_count %d"%(
