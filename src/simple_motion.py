@@ -25,7 +25,7 @@ if __name__ == '__main__':
     command.reference_frame = rospy.get_param('base_link_name')
     print("****** Frame: %s"%command.reference_frame)
     command.twist.linear.x = 1.0
-    command.twist.linear.z = 0.0 #-0.5
+    command.twist.linear.z = -0.5
     command.twist.angular.z = 0.25
     time.sleep(10)  # Give things time to start up
     while not rospy.is_shutdown():
