@@ -41,7 +41,7 @@
   </library_effects>
   <library_images>
     <image id="tx-LIDAR_psd" name="tx-LIDAR_psd">
-      <init_from>3dad_sl3.png</init_from>
+      <init_from>tx-3dad_sl3.png</init_from>
     </image>
   </library_images>
   <library_materials>

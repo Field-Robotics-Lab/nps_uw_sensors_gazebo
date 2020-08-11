@@ -88,7 +88,7 @@
 
     <include>
       <uri>model://3dad_sl3</uri>
-      <pose>0 0 0.25 0 0 1.57079632679</pose>
+      <pose>0 0 0.25 0 0 -1.57079632679</pose>
     </include>
     <plugin name="pulse_lidar_control" filename="libgazebo_ros_pulse_lidar_plugin.so" >
       <pan_position>-1.57079632679</pan_position>

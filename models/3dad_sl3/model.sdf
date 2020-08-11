@@ -2,8 +2,7 @@
 <sdf version="1.6">
  <model name="3dad_sl3">
    <link name="base">
-    <!-- Offset the base by half the lenght of the cylinder -->
-    <pose>0 0 0.0375 0 0 0</pose>
+    <!-- Offset the base by half the length of the cylinder -->
     <inertial>
       <mass>2</mass>
       <inertia>
@@ -17,28 +16,37 @@
     </inertial>
 
     <collision name="base_collision">
+    <pose>0 0 0.06 0 0 0</pose>
       <geometry>
         <cylinder>
-          <radius>.04</radius>
-          <length>.075</length>
+          <radius>.06</radius>
+          <length>.12</length>
         </cylinder>
       </geometry>
     </collision>
 
     <!-- The visual is mostly a copy of the collision -->
     <visual name="base_visual">
+    <pose>0 0.034 0.375 0 0 0</pose>
       <geometry>
+       <mesh> 
+         <uri>model://3dad_sl3/mesh/uw_lidar_mount_base.dae</uri>
+       </mesh>
+     </geometry>
+     </visual>
+   </link>
+
+<!-- previous values     
+<geometry>
         <cylinder>
           <radius>.04</radius>
           <length>.075</length>
         </cylinder>
       </geometry>
-    </visual>
-   </link>
+-->
 
   <link name="top">
     <!-- Offset the base by half the length of the cylinder -->
-    <pose>0 0 0.1125 0 0 0</pose>
     <inertial>
       <mass>2</mass>
       <inertia>
@@ -52,9 +60,10 @@
     </inertial>
 
     <collision name="top_collision">
+    <pose>0 0 0.1575 0 0 0</pose>
       <geometry>
         <cylinder>
-          <radius>.04</radius>
+          <radius>.045</radius>
           <length>.075</length>
         </cylinder>
       </geometry>
@@ -62,19 +71,27 @@
 
     <!-- The visual is mostly a copy of the collision -->
     <visual name="top_visual">
+    <pose>0 0.034 0.375 0 0 0</pose>
+      <geometry>
+       <mesh> 
+         <uri>model://3dad_sl3/mesh/uw_lidar_mount_swivel.dae</uri>
+       </mesh>
+     </geometry>
+    </visual>
+   </link>
+
+<!--
       <geometry>
         <cylinder>
           <radius>.04</radius>
           <length>.075</length>
         </cylinder>
       </geometry>
-    </visual>
-   </link>
-
+-->
 
   <link name="tray">
 
-    <pose>0 0 0.1775 0 0 0</pose>
+    <!--<pose>0 0 0.1775 0 0 0</pose>-->
     <inertial>
       <mass>0.5</mass>
       <inertia>
@@ -88,28 +105,37 @@
     </inertial>
 
     <collision name="tray_collision">
+     <pose>0 0 0.212 0 1.570796 0</pose>
       <geometry>
         <!--volume = 0.00071 cubic meters-->
-        <box>
-          <size>0.2 0.355 0.01</size>
-        </box>
+        <cylinder>
+          <radius>.05</radius>
+          <length>.2</length>
+        </cylinder>
       </geometry>
     </collision>
 
     <!-- The visual is mostly a copy of the collision -->
     <visual name="tray_visual">
+    <pose>0 0.034 0.375 0 0 0</pose>
+      <geometry>
+       <mesh> 
+         <uri>model://3dad_sl3/mesh/uw_lidar_mount_tray.dae</uri>
+       </mesh>
+     </geometry>
+    </visual>
+   </link>
+    <!--  previous
       <geometry>
         <box>
           <size>0.2 0.355 0.01</size>
         </box>
       </geometry>
-    </visual>
-   </link>
-
+-->
 
    <link name="3dad_sl3_link">
     <visual name="3dad_sl3_visual">
-     <pose>0 0 0.2735 0 0 3.14159265359</pose>
+     <pose>0 0 0.375 0 0 0</pose>
      <geometry>
        <mesh> 
          <uri>model://3dad_sl3/mesh/3dad_sl3.dae</uri>
@@ -117,7 +143,7 @@
      </geometry>
     </visual>
     <collision name="3dad_sl3_collision">
-     <pose>0 0 0.2735 0 1.570796 1.570796</pose>
+     <pose>0 0 0.375 0 1.570796 1.570796</pose>
      <geometry>
        <cylinder>
          <radius>0.105</radius>
@@ -128,7 +154,7 @@
     <inertial>
      <!-- <mass>8.2</mass>  water-->
      <mass>20.9</mass>
-     <pose>0 0 0.2735 0 0 0</pose>
+     <pose>0 0 0.375 0 0 0</pose>
      <inertia>
        <ixx>0.27709917</ixx>
        <iyy>0.11521125</iyy>
@@ -149,10 +175,8 @@
       </plugin>
 
       <always_on>true</always_on>
-      <!-- Position the ray sensor based on the specification. Also rotate
-           it by 90 degrees around the X-axis so that the <horizontal> rays
-           become vertical -->
-      <pose>-0.014 0.2 0.28 0 0 1.570796</pose>
+      <!-- -->
+      <pose>0.014 -0.2 0.38 0 0 -1.570796</pose>
 
       <!-- Enable visualization to see the rays in the GUI -->
       <visualize>true</visualize>
