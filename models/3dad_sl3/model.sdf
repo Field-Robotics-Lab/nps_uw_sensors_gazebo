@@ -4,11 +4,12 @@
    <link name="base">
     <!-- Offset the base by half the length of the cylinder -->
     <inertial>
-      <mass>2</mass>
+      <pose>0 0 0.06 0 0 0</pose>
+      <mass>2.84</mass>
       <inertia>
-        <ixx>0.0017375</ixx>
-        <iyy>0.0017375</iyy>
-        <izz>0.0016</izz>
+        <ixx>0.005964</ixx>
+        <iyy>0.005964</iyy>
+        <izz>0.005112</izz>
         <ixy>0</ixy>
         <ixz>0</ixz>
         <iyz>0</iyz>
@@ -48,11 +49,12 @@
   <link name="top">
     <!-- Offset the base by half the length of the cylinder -->
     <inertial>
-      <mass>2</mass>
+      <pose>0 0 0.1575 0 0 0</pose>
+      <mass>1</mass>
       <inertia>
-        <ixx>0.0017375</ixx>
-        <iyy>0.0017375</iyy>
-        <izz>0.0016</izz>
+        <ixx>0.000975</ixx>
+        <iyy>0.000975</iyy>
+        <izz>0.0010125</izz>
         <ixy>0</ixy>
         <ixz>0</ixz>
         <iyz>0</iyz>
@@ -93,11 +95,12 @@
 
     <!--<pose>0 0 0.1775 0 0 0</pose>-->
     <inertial>
-      <mass>0.5</mass>
+      <pose>0 0 0.212 0 1.570796 0</pose>
+      <mass>3.29</mass>
       <inertia>
-        <ixx>0.00525520833</ixx>
-        <iyy>0.00167083333</iyy>
-        <izz>0.00691770833</izz>
+        <ixx>0.01302291666</ixx>
+        <iyy>0.01302291666</iyy>
+        <izz>0.0041125</izz>
         <ixy>0</ixy>
         <ixz>0</ixz>
         <iyz>0</iyz>
