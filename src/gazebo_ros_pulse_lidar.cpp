@@ -48,12 +48,12 @@ namespace gazebo
      this->tilt_joint = this->model->GetJoint("3dad_sl3::top_tray_joint"); // "top_tray_joint"
 
      // Setup a P-controller, with _imax = 1
-     this->pan_pid = common::PID(0.1, 0, 0.7,1);
+     this->pan_pid = common::PID(1, 0, 2.5,1);
 
      // Setup a P-controller with _imax = 10
      // This is very unstable out of water and requires very high gain values
      // to get close to compliance.
-     this->tilt_pid = common::PID(250, 10, 20, 10);
+     this->tilt_pid = common::PID(250, 50, 100, 50);
 
      // Apply the P0-controller to the joint.
      this->model->GetJointController()->SetPositionPID(
