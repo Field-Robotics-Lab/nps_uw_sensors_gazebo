@@ -97,7 +97,7 @@
 
     <joint type="fixed" name="lidar_stand_bolt">
       <!-- Position the joint at the bottom of the top link -->
-      <pose>0 0 -0.05 0 0 0</pose>
+      <pose>0 0 0 0 0 0</pose>
       <!-- Use the base link as the parent of the joint -->
       <parent>pedestal_link</parent>
       <!-- Use the top link as the child of the joint -->

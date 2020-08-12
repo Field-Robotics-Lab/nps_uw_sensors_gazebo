@@ -235,7 +235,7 @@
    <!-- Each joint must have a unique name -->
    <joint type="revolute" name="base_top_joint">
      <!-- Position the joint at the bottom of the top link -->
-     <pose>0 0 -0.0375 0 0 0</pose>
+     <pose>0 0 0.12 0 0 0</pose>
      <!-- Use the base link as the parent of the joint -->
      <parent>base</parent>
      <!-- Use the top link as the child of the joint -->
@@ -255,7 +255,7 @@
    <!-- Each joint must have a unique name -->
    <joint type="revolute" name="top_tray_joint">
      <!-- Position the joint at the bottom of the top link -->
-     <pose>0 0 0 0 0 3.14159265359</pose>
+     <pose>0 0 0.212 0 0 3.14159265359</pose>
      <!-- Use the base link as the parent of the joint -->
      <parent>top</parent>
      <!-- Use the top link as the child of the joint -->
@@ -275,7 +275,7 @@
    <!-- Each joint must have a unique name -->
    <joint type="fixed" name="tray_lidar_joint">
      <!-- Position the joint at the bottom of the top link -->
-     <pose>0 0 0.19 0 0 0</pose>
+     <pose>0 0 0.275 0 0 0</pose>
      <!-- Use the base link as the parent of the joint -->
      <parent>tray</parent>
      <!-- Use the top link as the child of the joint -->
