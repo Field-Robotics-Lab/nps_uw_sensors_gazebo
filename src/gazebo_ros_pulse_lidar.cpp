@@ -43,20 +43,17 @@ namespace gazebo
      // Store the model pointer for convenience.
      this->model = _model;
    
-     // Get the first joint. We are making an assumption about the model
-     // having one joint that is the rotational joint.
-     this->pan_joint = this->model->GetJoints()[0];
-     this->tilt_joint = this->model->GetJoints()[1];
+     // Get the joints
+     this->pan_joint = this->model->GetJoint("3dad_sl3::base_top_joint");
+     this->tilt_joint = this->model->GetJoint("3dad_sl3::top_tray_joint"); // "top_tray_joint"
 
-//   this->jointController.reset(new physics::JointController(this->model));
-//   this->jointController->AddJoint(this->joint);
-//   std::string name = this->joint->GetScopedName();
-   
-     // Setup a P-controller, with a gain of 0.1.
-     this->pan_pid = common::PID(0.01, 0, 0.001,0,0,0.001, -0.001);
+     // Setup a P-controller, with _imax = 1
+     this->pan_pid = common::PID(1, 0, 2.5,1);
 
-//   // Setup a P-controller, with a gain of 0.1.
-     this->tilt_pid = common::PID(0.1, 0.01, 0.001);
+     // Setup a P-controller with _imax = 10
+     // This is very unstable out of water and requires very high gain values
+     // to get close to compliance.
+     this->tilt_pid = common::PID(250, 50, 100, 50);
 
      // Apply the P0-controller to the joint.
      this->model->GetJointController()->SetPositionPID(
@@ -65,12 +62,6 @@ namespace gazebo
      this->model->GetJointController()->SetPositionPID(
          this->tilt_joint->GetScopedName(), this->tilt_pid);
 
-
-//   this->jointController->SetVelocityPID(name, pan_pid);
-
-//   // Apply the P-controller to the joint.
-//   this->model->GetJointController()->SetPositionPID(
-//       this->joint->GetScopedName(), this->pan_pid);
 
      // Default to zero velocity
      double pan_position = 0;
@@ -93,13 +84,7 @@ namespace gazebo
          this->tilt_joint->GetScopedName(), tilt_position);
 
 
-//   this->jointController->SetVelocityTarget(name, pan_velocity);
-
-//   // Set the joint's target velocity. This target velocity is just
-//   // for demonstration purposes.
-//   this->model->GetJointController()->SetPositionTarget(
-//       this->joint->GetScopedName(), tilt_position);
-// Create the node
+     // Create the node
      this->node = transport::NodePtr(new transport::Node());
      #if GAZEBO_MAJOR_VERSION < 8
      this->node->Init(this->model->GetWorld()->GetName());
