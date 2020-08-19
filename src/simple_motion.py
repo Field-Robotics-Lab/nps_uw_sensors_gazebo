@@ -5,7 +5,7 @@
 # Teledyne WHN DVL model in the gazebo scene.  The velocity is set
 # relative to the DVL base link at a rate of 50 hertz to effect a slow
 # right hand turn (0.25 radians per second) with a forward velocity of
-# 1 meter per second and a descent rate of 0.5 meters per scend
+# 1 meter per second and a descent rate of 0.5 meters per second
 #-----------------------------------------------------------------------
 
 import rospy

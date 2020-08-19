@@ -28,5 +28,5 @@
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher">
     <remap from="robot_description" to="uuvsim_teledyne_whn" />
   </node>
-  <node name="apply_velocity" pkg="nps_uw_sensors_gazebo" type="simple_motion.py" respawn="false" output="screen"/>
+  <node name="apply_velocity" pkg="nps_uw_sensors_gazebo" type="simple_box_motion.py" respawn="false" output="screen"/>
 </launch>
