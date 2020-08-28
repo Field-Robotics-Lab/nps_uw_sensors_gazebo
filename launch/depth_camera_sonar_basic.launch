@@ -16,9 +16,14 @@
         args="-urdf -model nps_depth_camera_sonar_model -param depth_camera_sonar_robot" />
 
     <!-- this Python ROS node converts depth and normals to Sonar outputs -->
+<!--
     <node name="depth_and_normals_to_sonar" pkg="nps_uw_sensors_gazebo"
           type="depth_camera_sonar.py"
           args="1.6 37 9 1.0 1.0">
+    </node>
+-->
+    <node name="depth_and_normals_to_sonar" pkg="nps_uw_sensors_gazebo"
+          type="sonar_ros.py">
     </node>
 
     <!-- rqt_image_view for image depth -->
