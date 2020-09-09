@@ -19,7 +19,6 @@
 #ifndef INCLUDE_NPS_UW_SENSORS_GAZEBO_NPS_GAZEBO_ROS_GPU_SONAR_SINGLE_BEAM_H_
 #define INCLUDE_NPS_UW_SENSORS_GAZEBO_NPS_GAZEBO_ROS_GPU_SONAR_SINGLE_BEAM_H_
 
-#include <string>
 
 #include <boost/bind.hpp>
 #include <boost/thread.hpp>
@@ -27,6 +26,9 @@
 #include <ros/ros.h>
 #include <ros/advertise_options.h>
 #include <sensor_msgs/LaserScan.h>
+#include <gazebo_plugins/PubQueue.h>
+
+#include <string>
 
 #include <gazebo/physics/physics.hh>
 #include <gazebo/transport/TransportTypes.hh>
@@ -39,7 +41,6 @@
 
 #include <sdf/sdf.hh>
 
-#include <gazebo_plugins/PubQueue.h>
 
 namespace gazebo
 {
