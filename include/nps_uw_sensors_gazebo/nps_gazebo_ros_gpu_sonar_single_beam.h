@@ -67,7 +67,7 @@ namespace gazebo
     private: sensors::GpuRaySensorPtr parent_ray_sensor_;
 
     /// \brief pointer to ros node
-    private: ros::NodeHandle* rosnode_;
+    private: std::unique_ptr<ros::NodeHandle> rosnode_;
     private: ros::Publisher pub_;
     private: PubQueue<sensor_msgs::LaserScan>::Ptr pub_queue_;
 

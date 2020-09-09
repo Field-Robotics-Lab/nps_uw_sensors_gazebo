@@ -58,6 +58,7 @@ GZ_REGISTER_SENSOR_PLUGIN(NpsGazeboRosGpuSingleBeamSonar)
 NpsGazeboRosGpuSingleBeamSonar::NpsGazeboRosGpuSingleBeamSonar()
 {
   this->seed = 0;
+  this->laser_connect_count_ = 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -109,7 +110,6 @@ std::cout << "NpsGazeboRosGpuSingleBeamSonar Load\n";
   else
     this->topic_name_ = this->sdf->Get<std::string>("topicName");
 
-  this->laser_connect_count_ = 0;
 
 
   // Make sure the ROS node for Gazebo has already been initialized
@@ -245,13 +245,15 @@ void NpsGazeboRosGpuSingleBeamSonar::OnScan(ConstLaserScanStampedPtr &_msg)
   // calculate range and intensity from Gazebo array
   float angle = laser_msg.angle_min;
   float increment = laser_msg.angle_increment;
-  // float intensity = 0.0; // not yet used
-  float intensity_ref = 2.6e-16;
-  // float absorption = 5e-5; // not yet used
-  // float echo_level = 0.0; // not yet used
-  // float source_level = 120.0; // not yet used
-  // float transmission_loss = 0.0; // not yet used
-  // float target_strength = 10.0; // not yet used
+
+  // variables below are not currently referenced
+  // float intensity = 0.0; 
+  // float intensity_ref = 2.6e-16; 
+  // float absorption = 5e-5; 
+  // float echo_level = 0.0; 
+  // float source_level = 120.0; 
+  // float transmission_loss = 0.0; 
+  // float target_strength = 10.0; 
   float range = laser_msg.range_max - laser_msg.range_min;
   auto range_it = _msg->scan().ranges().begin();
   auto intensity_it = _msg->scan().intensities().begin();
