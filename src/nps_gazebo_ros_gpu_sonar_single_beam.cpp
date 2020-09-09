@@ -67,7 +67,6 @@ NpsGazeboRosGpuSingleBeamSonar::~NpsGazeboRosGpuSingleBeamSonar()
 {
   ROS_DEBUG_STREAM_NAMED("gpu_laser_sonar","Shutting down GPU Laser");
   this->rosnode_->shutdown();
-  delete this->rosnode_;
   ROS_DEBUG_STREAM_NAMED("gpu_laser_sonar","Unloaded");
 }
 
@@ -136,7 +135,7 @@ void NpsGazeboRosGpuSingleBeamSonar::LoadThread()
 
   this->pmq.startServiceThread();
 
-  this->rosnode_ = new ros::NodeHandle(this->robot_namespace_);
+  this->rosnode_.reset(new ros::NodeHandle(this->robot_namespace_));
 
   this->tf_prefix_ = tf::getPrefixParam(*this->rosnode_);
   if(this->tf_prefix_.empty()) {
@@ -247,7 +246,7 @@ void NpsGazeboRosGpuSingleBeamSonar::OnScan(ConstLaserScanStampedPtr &_msg)
   float increment = laser_msg.angle_increment;
 
   // variables below are not currently referenced
-  // float intensity = 0.0; 
+     float intensity = 0.0; 
   // float intensity_ref = 2.6e-16; 
   // float absorption = 5e-5; 
   // float echo_level = 0.0; 
