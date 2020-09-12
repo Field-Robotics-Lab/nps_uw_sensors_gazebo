@@ -27,12 +27,17 @@
    Date: 7 May 2020
  */
 
+#include "nps_uw_sensors_gazebo/nps_gazebo_ros_gpu_sonar_single_beam.h"
+
+#include <assert.h>
+#include <tf/tf.h>
+#include <tf/transform_listener.h>
+#include <gazebo_plugins/gazebo_ros_utils.h>
+
 #include <algorithm>
 #include <string>
-#include <assert.h>
 
 #include <sdf/sdf.hh>
-
 #include <gazebo/physics/World.hh>
 #include <gazebo/physics/HingeJoint.hh>
 #include <gazebo/sensors/Sensor.hh>
@@ -41,20 +46,13 @@
 #include <gazebo/sensors/SensorTypes.hh>
 #include <gazebo/transport/transport.hh>
 
-#include <tf/tf.h>
-#include <tf/transform_listener.h>
-
-#include <gazebo_plugins/gazebo_ros_utils.h>
-
-#include "nps_uw_sensors_gazebo/nps_gazebo_ros_gpu_sonar_single_beam.h"
-
 namespace gazebo
 {
 // Register this plugin with the simulator
 GZ_REGISTER_SENSOR_PLUGIN(NpsGazeboRosGpuSingleBeamSonar)
 
 ////////////////////////////////////////////////////////////////////////////////
-// Constructor
+// Constructorcopyright statement for government work code
 NpsGazeboRosGpuSingleBeamSonar::NpsGazeboRosGpuSingleBeamSonar()
 {
   this->seed = 0;
@@ -65,14 +63,15 @@ NpsGazeboRosGpuSingleBeamSonar::NpsGazeboRosGpuSingleBeamSonar()
 // Destructor
 NpsGazeboRosGpuSingleBeamSonar::~NpsGazeboRosGpuSingleBeamSonar()
 {
-  ROS_DEBUG_STREAM_NAMED("gpu_laser_sonar","Shutting down GPU Laser");
+  ROS_DEBUG_STREAM_NAMED("gpu_laser_sonar", "Shutting down GPU Laser");
   this->rosnode_->shutdown();
-  ROS_DEBUG_STREAM_NAMED("gpu_laser_sonar","Unloaded");
+  ROS_DEBUG_STREAM_NAMED("gpu_laser_sonar", "Unloaded");
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // Load the controller
-void NpsGazeboRosGpuSingleBeamSonar::Load(sensors::SensorPtr _parent, sdf::ElementPtr _sdf)
+void NpsGazeboRosGpuSingleBeamSonar::Load(sensors::SensorPtr _parent,
+                                              sdf::ElementPtr _sdf)
 {
 std::cout << "NpsGazeboRosGpuSingleBeamSonar Load\n";
 
@@ -89,13 +88,17 @@ std::cout << "NpsGazeboRosGpuSingleBeamSonar Load\n";
     dynamic_pointer_cast<sensors::GpuRaySensor>(_parent);
 
   if (!this->parent_ray_sensor_)
-    gzthrow("NpsGazeboRosGpuSingleBeamSonar controller requires a Ray Sensor as its parent");
+  {
+    gzthrow("NpsGazeboRosGpuSingleBeamSonar controller requires a "
+            "Ray Sensor as its parent");
+  }
 
   this->robot_namespace_ =  GetRobotNamespace(_parent, _sdf, "Laser");
 
   if (!this->sdf->HasElement("frameName"))
   {
-    ROS_INFO_NAMED("gpu_laser_sonar", "NpsGazeboRosGpuSingleBeamSonar plugin missing <frameName>, defaults to /world");
+    ROS_INFO_NAMED("gpu_laser_sonar", "NpsGazeboRosGpuSingleBeamSonar plugin"
+                   " missing <frameName>, defaults to /world");
     this->frame_name_ = "/world";
   }
   else
@@ -103,34 +106,37 @@ std::cout << "NpsGazeboRosGpuSingleBeamSonar Load\n";
 
   if (!this->sdf->HasElement("topicName"))
   {
-    ROS_INFO_NAMED("gpu_laser_sonar", "NpsGazeboRosGpuSingleBeamSonar plugin missing <topicName>, defaults to /world");
+    ROS_INFO_NAMED("gpu_laser_sonar", "NpsGazeboRosGpuSingleBeamSonar plugin"
+                   " missing <topicName>, defaults to /world");
     this->topic_name_ = "/world";
   }
   else
     this->topic_name_ = this->sdf->Get<std::string>("topicName");
 
-
-
   // Make sure the ROS node for Gazebo has already been initialized
   if (!ros::isInitialized())
   {
-    ROS_FATAL_STREAM_NAMED("gpu_laser_sonar", "A ROS node for Gazebo has not been initialized, unable to load plugin. "
-      << "Load the Gazebo system plugin 'libgazebo_ros_api_plugin.so' in the gazebo_ros package)");
+    ROS_FATAL_STREAM_NAMED("gpu_laser_sonar", "A ROS node for Gazebo has not "
+                           "been initialized, unable to load plugin. Load the "
+                           "Gazebo system plugin 'libgazebo_ros_api_plugin.so'"
+                           " in the gazebo_ros package.");
     return;
   }
 
-  ROS_INFO_NAMED("gpu_laser_sonar", "Starting NpsGazeboRosGpuSingleBeamSonar Plugin (ns = %s)", this->robot_namespace_.c_str() );
+  ROS_INFO_NAMED("gpu_laser_sonar",
+                 "Starting NpsGazeboRosGpuSingleBeamSonar Plugin (ns = %s)",
+                 this->robot_namespace_.c_str() );
   // ros callback queue for processing subscription
   this->deferred_load_thread_ = boost::thread(
     boost::bind(&NpsGazeboRosGpuSingleBeamSonar::LoadThread, this));
-
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // Load the controller
 void NpsGazeboRosGpuSingleBeamSonar::LoadThread()
 {
-  this->gazebo_node_ = gazebo::transport::NodePtr(new gazebo::transport::Node());
+  this->gazebo_node_ =
+    gazebo::transport::NodePtr(new gazebo::transport::Node());
   this->gazebo_node_->Init(this->world_name_);
 
   this->pmq.startServiceThread();
@@ -138,12 +144,13 @@ void NpsGazeboRosGpuSingleBeamSonar::LoadThread()
   this->rosnode_.reset(new ros::NodeHandle(this->robot_namespace_));
 
   this->tf_prefix_ = tf::getPrefixParam(*this->rosnode_);
-  if(this->tf_prefix_.empty()) {
+  if (this->tf_prefix_.empty()) {
       this->tf_prefix_ = this->robot_namespace_;
-      boost::trim_right_if(this->tf_prefix_,boost::is_any_of("/"));
+      boost::trim_right_if(this->tf_prefix_, boost::is_any_of("/"));
   }
-  ROS_INFO_NAMED("gpu_laser_sonar", "GPU Laser Plugin (ns = %s) <tf_prefix_>, set to \"%s\"",
-             this->robot_namespace_.c_str(), this->tf_prefix_.c_str());
+  ROS_INFO_NAMED("gpu_laser_sonar",
+                 "GPU Laser Plugin (ns = %s) <tf_prefix_>, set to \"%s\"",
+                 this->robot_namespace_.c_str(), this->tf_prefix_.c_str());
 
   // resolve tf prefix
   this->frame_name_ = tf::resolve(this->tf_prefix_, this->frame_name_);
@@ -165,7 +172,7 @@ void NpsGazeboRosGpuSingleBeamSonar::LoadThread()
   // sensor generation off by default
   this->parent_ray_sensor_->SetActive(false);
 
-  ROS_INFO_STREAM_NAMED("gpu_laser_sonar","LoadThread function completed");
+  ROS_INFO_STREAM_NAMED("gpu_laser_sonar", "LoadThread function completed");
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -176,7 +183,7 @@ void NpsGazeboRosGpuSingleBeamSonar::LaserConnect()
   if (this->laser_connect_count_ == 1)
     this->laser_scan_sub_ =
       this->gazebo_node_->Subscribe(this->parent_ray_sensor_->Topic(),
-                                    &NpsGazeboRosGpuSingleBeamSonar::OnScan, this);
+                              &NpsGazeboRosGpuSingleBeamSonar::OnScan, this);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -246,13 +253,13 @@ void NpsGazeboRosGpuSingleBeamSonar::OnScan(ConstLaserScanStampedPtr &_msg)
   float increment = laser_msg.angle_increment;
 
   // variables below are not currently referenced
-     float intensity = 0.0; 
-  // float intensity_ref = 2.6e-16; 
-  // float absorption = 5e-5; 
-  // float echo_level = 0.0; 
-  // float source_level = 120.0; 
-  // float transmission_loss = 0.0; 
-  // float target_strength = 10.0; 
+     float intensity = 0.0;
+  // float intensity_ref = 2.6e-16;
+  // float absorption = 5e-5;
+  // float echo_level = 0.0;
+  // float source_level = 120.0;
+  // float transmission_loss = 0.0;
+  // float target_strength = 10.0;
   float range = laser_msg.range_max - laser_msg.range_min;
   auto range_it = _msg->scan().ranges().begin();
   auto intensity_it = _msg->scan().intensities().begin();
