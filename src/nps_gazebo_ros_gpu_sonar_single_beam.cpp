@@ -27,7 +27,7 @@
    Date: 7 May 2020
  */
 
-#include "nps_uw_sensors_gazebo/nps_gazebo_ros_gpu_sonar_single_beam.h"
+#include "nps_uw_sensors_gazebo/nps_gazebo_ros_gpu_sonar_single_beam.hh"
 
 #include <assert.h>
 #include <tf/tf.h>
