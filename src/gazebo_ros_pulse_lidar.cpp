@@ -48,10 +48,10 @@ namespace gazebo
                            "NPS Gazebo ROS lidar plugin will not be loaded.");
        return;
      }
-      ROS_INFO_NAMED("pulse_lidar", 
+      ROS_INFO_NAMED("pulse_lidar",
                      "The NPS Gazebo ROS pulse lidar plugin is attached to "
                      "model [%s]", _model->GetName().c_str());
- 
+
      // Store the model pointer for convenience.
      this->model = _model;
 
