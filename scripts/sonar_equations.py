@@ -102,17 +102,41 @@ def _ray_incidence(azimuth, elevation, normalf4):
 #zz    return pi - acos(ray_normal.dot(target_normal))
 
     dot_product = ray_normal.dot(target_normal)
-    print("dot product: "%dot_product)
-    print(dot_product)
-    if dot_product < -1.0 or dot_product > 1.0:
-        text="ray_normal %f, %f, %f"%(ray_normal[0], ray_normal[1], ray_normal[2])
-        rospy.logwarn(_textf3("ray_normal", ray_normal))
-        rospy.logwarn(_textf3("target_normal", target_normal))
-        rospy.logwarn("dot product = %f"%dot_product)
-        dot_product=-1.0
+#    print("dot product: "%dot_product)
+#    print(dot_product)
+#    if dot_product < -1.0 or dot_product > 1.0:
+#        text="ray_normal %f, %f, %f"%(ray_normal[0], ray_normal[1], ray_normal[2])
+#        rospy.logwarn(_textf3("ray_normal", ray_normal))
+#        rospy.logwarn(_textf3("target_normal", target_normal))
+#        rospy.logwarn("dot product = %f"%dot_product)
+#        dot_product=-1.0
     return pi - acos(dot_product)
 
 def process_rays(ray_distancesf2, ray_normalsf2_4, show_plots=False):
+#    for i in range(4):
+#        rospy.logwarn("ray distance %d: %f, %f, %f"%(i,
+#             ray_distancesf2[i,0], ray_distancesf2[i,1], ray_distancesf2[i,2]))
+#
+#        rospy.logwarn("ray normal %d: %f, %f, %f, %f"%(i,
+#             ray_normalsf2_4[i,0,0], ray_normalsf2_4[i,0,1], ray_normalsf2_4[i,0,2], ray_normalsf2_4[i,0,3]))
+#        rospy.logwarn("ray normal %d: %f, %f, %f, %f"%(i,
+#             ray_normalsf2_4[i,1,2], ray_normalsf2_4[i,1,0], ray_normalsf2_4[i,1,1], ray_normalsf2_4[i,1,3]))
+#        rospy.logwarn("ray normal %d: %f, %f, %f, %f"%(i,
+#             ray_normalsf2_4[i,2,2], ray_normalsf2_4[i,2,0], ray_normalsf2_4[i,2,1], ray_normalsf2_4[i,2,3]))
+#        rospy.logwarn(" ")
+
+    for i in range(4):
+        rospy.logwarn("ray distance %d: %f, %f, %f"%(i,
+             ray_distancesf2[i,0], ray_distancesf2[i,1], ray_distancesf2[i,2]))
+
+        rospy.logwarn("ray normal %d: %f, %f, %f"%(i,
+             ray_normalsf2_4[i,0,2], ray_normalsf2_4[i,0,0], ray_normalsf2_4[i,0,1]))
+        rospy.logwarn("ray normal %d: %f, %f, %f"%(i,
+             ray_normalsf2_4[i,1,2], ray_normalsf2_4[i,1,0], ray_normalsf2_4[i,1,1]))
+        rospy.logwarn("ray normal %d: %f, %f, %f"%(i,
+             ray_normalsf2_4[i,2,2], ray_normalsf2_4[i,2,0], ray_normalsf2_4[i,2,1]))
+        rospy.logwarn(" ")
+
 
     # Sonar sensor properties
     nBeams = 1
@@ -177,6 +201,7 @@ def process_rays(ray_distancesf2, ray_normalsf2_4, show_plots=False):
             elevationBeamPattern2f[k,i] = (abs(_unnormalized_sinc(pi * 0.884
                  / ray_elevationAngleWidth * sin(ray_elevationAnglesf1[k]))))**2
 
+    incidences_f2 = np.zeros((ray_nElevationRays, ray_nAzimuthRays), dtype=np.float32) # diagnostics message
     for k in range(ray_nElevationRays):
         for i in range(ray_nAzimuthRays):
             xi_z = random()   # generate a random number, (Gaussian noise)
@@ -186,14 +211,15 @@ def process_rays(ray_distancesf2, ray_normalsf2_4, show_plots=False):
             r = i % nBeams
 
             # angle between ray vector and object normal vector, [rad]
-            alpha = _ray_incidence(full_sweep_azimuthAnglesf1[i],
-                                   ray_elevationAnglesf1[k],
-                                   ray_normalsf2_4[k, i])
+            incidence = _ray_incidence(full_sweep_azimuthAnglesf1[i],
+                                       ray_elevationAnglesf1[k],
+                                       ray_normalsf2_4[k, i])
+            incidences_f2[k,i] = incidence
 
             distance = ray_distancesf2[k,i]
             amplitude = (((xi_z + 1j * xi_y)
                          / sqrt(2))
-                         * (sqrt(mu * cos(alpha)**2 * distance**2
+                         * (sqrt(mu * cos(incidence)**2 * distance**2
                                  * ray_azimuthAngleWidth
                                  * ray_elevationAngleWidth))
                          * azimuthBeamPattern2f[k,i]
@@ -204,6 +230,11 @@ def process_rays(ray_distancesf2, ray_normalsf2_4, show_plots=False):
             for m in range(nFreq):
                 P_ray_f2c[b,m] = P_ray_f2c[b,m] + S_f1f[m] * amplitude \
                            * np.exp(-1j * K1f[m] * distance * 2) / (distance**2)
+
+    # diagnostics incidences
+    for i in range(4):
+        rospy.logwarn("incidences %d: %f, %f, %f"%(i,
+             incidences_f2[i,0], incidences_f2[i,1], incidences_f2[i,2]))
 
     # power level based on echo time for each beam
     P_beam_tf2 = np.zeros((nBeams, nFreq))
@@ -222,7 +253,7 @@ def process_rays(ray_distancesf2, ray_normalsf2_4, show_plots=False):
         _show_plots(nBeams, ray_nElevationRays, ray_nAzimuthRays,
                     nFreq, nBuckets, time1f, P_beam_tf2, P_bucket_tf2)
 
-    return P_bucket_tf2
+    return P_bucket_tf2, incidences_f2
 
 # test
 if __name__ == '__main__':
@@ -233,5 +264,5 @@ if __name__ == '__main__':
                                [[1,0,0,0], [1,0,0,0], [1,0,0,0]],
                                [[1,0,0,0], [1,0,0,0], [1,0,0,0]]])
 
-    image = process_rays(ray_distancesf2, ray_normalsf2_4, True)
+    _image, _incidences = process_rays(ray_distancesf2, ray_normalsf2_4, True)
 

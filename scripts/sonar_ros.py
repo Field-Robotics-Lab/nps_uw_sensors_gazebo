@@ -18,10 +18,11 @@ IMAGE_DEPTH_TOPIC = "depth_camera_sonar_sensor_camera/image_depth"
 IMAGE_NORMALS_TOPIC = "depth_camera_sonar_sensor_camera/image_normals"
 
 # publisher name constants, should be replaced with sdf inputs
-RAY_IMAGE_TOPIC = "sonar_ray_image"
-RAY_POINT_CLOUD_TOPIC = "sonar_ray_point_cloud"
+#RAY_IMAGE_TOPIC = "sonar_ray_image"
+#RAY_POINT_CLOUD_TOPIC = "sonar_ray_point_cloud"
 BEAM_IMAGE_TOPIC = "sonar_beam_image"
-BEAM_POINT_CLOUD_TOPIC = "sonar_beam_point_cloud"
+#BEAM_POINT_CLOUD_TOPIC = "sonar_beam_point_cloud"
+INCIDENCE_IMAGE_TOPIC = "sonar_ray_incidence_image"
 
 class SonarNode:
     def __init__(self):
@@ -33,7 +34,8 @@ class SonarNode:
                                             Image, self.on_normals_image)
 
         # ROS publishers
-        self.ray_pub = rospy.Publisher(RAY_IMAGE_TOPIC, Image, queue_size=10)
+        self.beam_pub = rospy.Publisher(BEAM_IMAGE_TOPIC, Image, queue_size=10)
+        self.incidence_pub = rospy.Publisher(INCIDENCE_IMAGE_TOPIC, Image, queue_size=10)
 
         # ROS-CV bridge
         self.bridge = CvBridge()
@@ -52,11 +54,15 @@ class SonarNode:
         print("normals image shape: ", self.normals_matrix_f4.shape)
 
         # generate all the outputs
-        beam_matrix = process_rays(self.depth_matrix,
+        beam_matrix, alphas = process_rays(self.depth_matrix,
                                    self.normals_matrix_f4)
 
-        # advertise ray_power_matrix to ROS, inheriting the 32FC1 format
-        self.ray_pub.publish(self.bridge.cv2_to_imgmsg(beam_matrix,
+        # advertise the bucketed beam power matrix
+        self.beam_pub.publish(self.bridge.cv2_to_imgmsg(beam_matrix,
+                                                       "passthrough"))
+
+        # advertise alphas to ROS for diagnostics
+        self.incidence_pub.publish(self.bridge.cv2_to_imgmsg(alphas,
                                                        "passthrough"))
 
 if __name__ == '__main__':
