@@ -52,7 +52,7 @@ namespace gazebo
 GZ_REGISTER_SENSOR_PLUGIN(NpsGazeboRosGpuSingleBeamSonar)
 
 ////////////////////////////////////////////////////////////////////////////////
-// Constructorcopyright statement for government work code
+// Constructor
 NpsGazeboRosGpuSingleBeamSonar::NpsGazeboRosGpuSingleBeamSonar()
 {
   this->seed = 0;

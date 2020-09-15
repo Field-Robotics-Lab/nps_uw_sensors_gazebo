@@ -15,9 +15,6 @@
  *
 */
 
-#ifndef _GAZEBO_ROS_PULSE_LIDAR_HH_
-#define _GAZEBO_ROS_PULSE_LIDAR_HH_
-
 #include <gazebo/gazebo.hh>
 #include <gazebo/physics/physics.hh>
 #include <gazebo/transport/transport.hh>
@@ -47,14 +44,14 @@ namespace gazebo
      // Safety check
      if (_model->GetJointCount() == 0)
      {
-       std::cerr << "Invalid joint count; "
-                 << "NPS Gazebo ROS lidar plugin not loaded." << std::endl;
+       ROS_FATAL_STREAM_NAMED("pulse_lidar", "Invalid joint count; "
+                           "NPS Gazebo ROS lidar plugin will not be loaded.");
        return;
      }
-     // Just output a message for now
-     std::cerr << "\nThe NPS Gazebo ROS pulse lidar plugin is attached to "
-               << "model [" << _model->GetName() << "]" << std::endl;
-
+      ROS_INFO_NAMED("pulse_lidar", 
+                     "The NPS Gazebo ROS pulse lidar plugin is attached to "
+                     "model [%s]", _model->GetName().c_str());
+ 
      // Store the model pointer for convenience.
      this->model = _model;
 
@@ -244,4 +241,3 @@ namespace gazebo
   // Tell Gazebo about this plugin, so that Gazebo can call Load on this plugin.
   GZ_REGISTER_MODEL_PLUGIN(GazeboRosPulseLidar)
 }
-#endif
