@@ -620,29 +620,12 @@ bool GazeboRosDepthCamera::FillNormalsImageHelper(
   image_msg.data.resize(rows_arg * cols_arg * sizeof(float) * 4);
   image_msg.is_bigendian = 0;
 
-  const float bad_point = std::numeric_limits<float>::quiet_NaN();
-
   float* dest = (float*)(&(image_msg.data[0]));
   float* toCopyFrom = (float*)data_arg;
-  int index = 0;
 
-  // convert normals to point cloud
-std::cout << "FillNormalsImageHelper rows: " << rows_arg << " cols: " << cols_arg << "\n";
-  for (uint32_t j = 0; j < rows_arg; j++)
-  {
-    for (uint32_t i = 0; i < cols_arg*4; i++)
-    {
-      float normals = toCopyFrom[index++];
-//      if (normals > this->point_cloud_cutoff_)
-//      {
-        dest[i + j * cols_arg] = normals;
-//      }
-//      else //point in the unseeable range
-//      {
-//        dest[i + j * cols_arg] = bad_point;
-//      }
-    }
-  }
+  // accept values as they are so memcpy without looped checks
+  memcpy(dest, toCopyFrom, rows_arg * cols_arg * 4 * sizeof(float));
+
   return true;
 }
 
