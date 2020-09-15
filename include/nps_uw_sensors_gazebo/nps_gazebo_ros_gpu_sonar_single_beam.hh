@@ -15,10 +15,10 @@
  *
 */
 
-#ifndef NPS_GAZEBO_ROS_GPU_SINGLE_BEAM_SONAR_H
-#define NPS_GAZEBO_ROS_GPU_SINGLE_BEAM_SONAR_H
 
-#include <string>
+#ifndef NPS_GAZEBO_ROS_GPU_SONAR_SINGLE_BEAM_HH_
+#define NPS_GAZEBO_ROS_GPU_SONAR_SINGLE_BEAM_HH_
+
 
 #include <boost/bind.hpp>
 #include <boost/thread.hpp>
@@ -26,6 +26,9 @@
 #include <ros/ros.h>
 #include <ros/advertise_options.h>
 #include <sensor_msgs/LaserScan.h>
+#include <gazebo_plugins/PubQueue.h>
+
+#include <string>
 
 #include <gazebo/physics/physics.hh>
 #include <gazebo/transport/TransportTypes.hh>
@@ -38,7 +41,6 @@
 
 #include <sdf/sdf.hh>
 
-#include <gazebo_plugins/PubQueue.h>
 
 namespace gazebo
 {
@@ -67,7 +69,7 @@ namespace gazebo
     private: sensors::GpuRaySensorPtr parent_ray_sensor_;
 
     /// \brief pointer to ros node
-    private: ros::NodeHandle* rosnode_;
+    private: std::unique_ptr<ros::NodeHandle> rosnode_;
     private: ros::Publisher pub_;
     private: PubQueue<sensor_msgs::LaserScan>::Ptr pub_queue_;
 
