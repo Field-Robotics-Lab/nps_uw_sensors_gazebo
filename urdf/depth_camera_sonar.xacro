@@ -2,7 +2,7 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
   <!-- note: a ray count of less than (3,1) causes Ogre::AxisAlignedBox error -->
-  <xacro:macro name="depth_camera_sonar" params="namespace suffix parent_link topic beam_width horiz_count vert_count update_rate min_range max_range *origin">
+  <xacro:macro name="depth_camera_sonar" params="namespace suffix parent_link topic beam_width horiz_count vert_count num_beams update_rate min_range max_range *origin">
 
     <!-- joint to Sonar link -->
     <joint name="${namespace}_depth_camera_sonar${suffix}_joint" type="fixed">
@@ -56,18 +56,11 @@
 
           <frameName>forward_sonar_optical_link</frameName>
 
-
-
-<!--
-        <robotNamespace>${namespace}</robotNamespace>
-        <frameName>${namespace}/${topic}${suffix}_link</frameName>
-        <topicName>${topic}${suffix}_sonar_range</topicName>
--->
       </plugin>
       <camera>
         <horizontal_fov>${beam_width}</horizontal_fov>
         <image>
-          <width>${horiz_count}</width>
+          <width>${horiz_count * num_beams}</width>
           <height>${vert_count}</height>
           <format>R8G8B8</format>
         </image>
