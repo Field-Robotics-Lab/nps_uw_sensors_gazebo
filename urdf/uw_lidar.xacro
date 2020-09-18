@@ -30,17 +30,11 @@
 
   <!-- Generates an Underwater Lidar model and attaches it to a parent link 
        Sensor parameters align with those in the 3D at Depth SL3 datasheet -->
-  <xacro:macro name="uw_lidar" params="namespace parent_link *origin inertial_reference_frame">
+  <xacro:macro name="uw_lidar" params="namespace parent_link *origin">
     <xacro:uw_lidar_plugin_macro
       namespace="${namespace}"
       suffix=""
-      parent_link="${parent_link}"
-      reference_frame="${inertial_reference_frame}"
-      update_rate="7"
-      topic="dvl"
-      noise_sigma="0.005"
-      noise_amplitude="0.005"
-      scale="1">
+      parent_link="${parent_link}" >
       <xacro:insert_block name="origin"/>
     </xacro:uw_lidar_plugin_macro>
   </xacro:macro>
@@ -221,27 +215,68 @@
 
   <!-- Generates the uw_lidar model and plugin -->
   <xacro:macro name="uw_lidar_plugin_macro"
-    params="namespace suffix parent_link topic scale *origin update_rate
-    reference_frame noise_sigma noise_amplitude">
-    <link name="${namespace}/dvl${suffix}_link">
+    params="namespace suffix parent_link *origin">
+    <link name="${namespace}/uw_lidar${suffix}_link">
       <inertial>
-        <mass value="8.8"/>
+        <mass value="20.9"/>
         <origin xyz="0 0 0" rpy="0 0 0"/>
-        <inertia ixx="0.071732122" ixy="0" ixz="0" iyy="0.071732122" iyz="0" izz="0.055786544"/>
+        <inertia ixx="0.27709917" ixy="0" ixz="0" iyy="0.11521125" iyz="0" izz="0.27709917" />
       </inertial>
       <visual>
         <geometry>
-          <mesh filename="package://nps_uw_sensors_gazebo/models/whoi_teledyne_whn/meshes/WorkhorseNavigator.dae"/>
+          <mesh filename="package://nps_uw_sensors_gazebo/models/3dad_sl3/mesh/3dad_sl3.dae"/>
         </geometry>
-        <origin xyz="0 0 0" rpy="0 1.5707963267948966 0"/>
+        <origin xyz="0 0 0.2735" rpy="0 0 0"/>
       </visual>
       <collision>
-        <geometry>
-          <cylinder length="0.2445" radius="0.1126"/>
-        </geometry>
-        <origin xyz="0 0 0" rpy="0 1.5707963267948966 0"/>
+       <geometry>
+         <cylinder length="0.355" radius="0.105" />
+       </geometry>
+       <origin xyz="0 0 0.2735" rpy="0 1.570796 1.570796"/>
       </collision>
     </link>
+    <link name="${namespace}/uw_lidar${suffix}_base_link">
+      <inertial>
+        <mass value="2"/>
+        <origin xyz="0 0 0.0375" rpy="0 0 0"/>
+        <inertia ixx="0.0017375" ixy="0" ixz="0" iyy="0.0017375" iyz="0" izz="0.0016" />
+      </inertial>
+      <visual>
+        <geometry>
+          <mesh filename="package://nps_uw_sensors_gazebo/models/3dad_sl3/mesh/3dad_sl3.dae"/>
+        </geometry>
+        <origin xyz="0 0 0.2735" rpy="0 0 0"/>
+      </visual>
+      <collision>
+       <geometry>
+         <cylinder length="0.075" radius="0.04" />
+       </geometry>
+       <origin xyz="0 0 0.2735" rpy="0 1.570796 1.570796"/>
+      </collision>
+    </link>
+
+    <pose>0 0 0.0375 0 0 0</pose>
+
+    <collision name="base_collision">
+      <geometry>
+        <cylinder>
+          <radius>.04</radius>
+          <length>.075</length>
+        </cylinder>
+      </geometry>
+    </collision>
+
+    <!-- The visual is mostly a copy of the collision -->
+    <visual name="base_visual">
+      <geometry>
+        <cylinder>
+          <radius>.04</radius>
+          <length>.075</length>
+        </cylinder>
+      </geometry>
+    </visual>
+   </link>
+
 
     <joint name="${namespace}/dvl${suffix}_joint" type="revolute">
       <xacro:insert_block name="origin"/>
@@ -251,48 +286,5 @@
       <axis xyz="1 0 0"/>
     </joint>
 
-    <xacro:dvl_single_sonar
-      namespace="${namespace}" topic="${topic}" suffix=""
-      index="0" pitch="-0.52" yaw="0.0" update_rate="${update_rate}">
-    </xacro:dvl_single_sonar>
-
-    <xacro:dvl_single_sonar
-      namespace="${namespace}" topic="${topic}" suffix=""
-      index="1" pitch="0" yaw="0.52" update_rate="${update_rate}">
-    </xacro:dvl_single_sonar>
-
-    <xacro:dvl_single_sonar
-      namespace="${namespace}" topic="${topic}" suffix=""
-      index="2" pitch="0.52" yaw="0.0" update_rate="${update_rate}">
-    </xacro:dvl_single_sonar>
-
-    <xacro:dvl_single_sonar
-      namespace="${namespace}" topic="${topic}" suffix=""
-      index="3" pitch="0.0" yaw="-0.52" update_rate="${update_rate}">
-    </xacro:dvl_single_sonar>
-
-    <gazebo>
-      <plugin filename="libuuv_gazebo_ros_dvl_plugin.so" name="libuuv_gazebo_dvl${suffix}_plugin">
-        <robot_namespace>${namespace}</robot_namespace> <!-- (string, required): ros namespace in which the messages are published -->
-        <link_name>${parent_link}</link_name> <!-- (string, required): name of the body which holds the IMU sensor -->
-        <sensor_topic>${topic}${suffix}</sensor_topic> <!-- (string): name of the sensor output topic and prefix of service names -->
-        <update_rate>${update_rate}</update_rate> <!-- Update period [s] -->
-        <noise_sigma>${noise_sigma}</noise_sigma> <!-- std dev of position estimates in x, y, z [m/s] -->
-        <noise_amplitude>${noise_amplitude}</noise_amplitude>
-        <enable_gazebo_messages>false</enable_gazebo_messages>
-        <enable_local_ned_frame>false</enable_local_ned_frame>
-        <static_reference_frame>${reference_frame}</static_reference_frame>
-        <!-- Declaring the beams -->
-        <beam_link_name_0>${namespace}/dvl_sonar0_link</beam_link_name_0>
-        <beam_link_name_1>${namespace}/dvl_sonar1_link</beam_link_name_1>
-        <beam_link_name_2>${namespace}/dvl_sonar2_link</beam_link_name_2>
-        <beam_link_name_3>${namespace}/dvl_sonar3_link</beam_link_name_3>
-        <!-- Declaring the beam output topics -->
-        <beam_topic_0>${topic}${suffix}_sonar0</beam_topic_0>
-        <beam_topic_1>${topic}${suffix}_sonar1</beam_topic_1>
-        <beam_topic_2>${topic}${suffix}_sonar2</beam_topic_2>
-        <beam_topic_3>${topic}${suffix}_sonar3</beam_topic_3>
-      </plugin>
-    </gazebo>
   </xacro:macro>
 </robot>

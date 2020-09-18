@@ -35,7 +35,7 @@
     <child link="robot_link"/>
   </joint>
 
-  <xacro:uw_lidar namespace="dvl" parent_link="robot_base_link" inertial_reference_frame="world">
+  <xacro:uw_lidar namespace="dvl" parent_link="robot_base_link">
     <origin xyz="1 0 1.4" rpy="0 ${0.5*pi} 0"/>
   </xacro:uw_lidar>
 
