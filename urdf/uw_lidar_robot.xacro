@@ -35,7 +35,7 @@
     <child link="robot_link"/>
   </joint>
 
-  <xacro:uw_lidar namespace="dvl" parent_link="robot_base_link">
+  <xacro:uw_lidar namespace="uwl" parent_link="robot_base_link">
     <origin xyz="0.48 0 1.41" rpy="0 0 ${pi/2}"/>
   </xacro:uw_lidar>
 
@@ -44,19 +44,19 @@
   <gazebo reference="robot_link">
     <turnGravityOff>true</turnGravityOff>
   </gazebo>
-  <gazebo reference="dvl/dvl_link">
+  <gazebo reference="uwl/uwl_link">
     <turnGravityOff>true</turnGravityOff>
   </gazebo>
-  <gazebo reference="dvl/dvl_sonar0_link">
+  <gazebo reference="uwl/uwl_mount_tray_link">
     <turnGravityOff>true</turnGravityOff>
   </gazebo>
-  <gazebo reference="dvl/dvl_sonar1_link">
+  <gazebo reference="uwl/uwl_mount_swivel_link">
     <turnGravityOff>true</turnGravityOff>
   </gazebo>
-  <gazebo reference="dvl/dvl_sonar2_link">
+  <gazebo reference="uwl/uwl_mount_base_link">
     <turnGravityOff>true</turnGravityOff>
   </gazebo>
-  <gazebo reference="dvl/dvl_sonar3_link">
+  <gazebo reference="uwl/uwl_sensor_link">
     <turnGravityOff>true</turnGravityOff>
   </gazebo>
 

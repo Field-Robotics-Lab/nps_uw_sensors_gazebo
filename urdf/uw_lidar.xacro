@@ -215,7 +215,7 @@
 
   <!-- Generates a Lidar sensor -->
   <xacro:macro name="uw_lidar_sensor" params="namespace suffix update_rate">
-    <link name="${namespace}/uw_lidar${suffix}_sensor_link">
+    <link name="${namespace}/uwl${suffix}_sensor_link">
       <inertial>
         <mass value="0.001"/>
         <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -224,13 +224,13 @@
       <xacro:no_collision/>
     </link>
 
-    <joint name="${namespace}/uw_lidar${suffix}_sensor_joint" type="fixed">
+    <joint name="${namespace}/uwl${suffix}_sensor_joint" type="fixed">
       <origin xyz="0.014 -0.1825 0.168" rpy="0 0 -${pi/2}"/>
-      <parent link="${namespace}/uw_lidar${suffix}_link"/>
-      <child link="${namespace}/uw_lidar${suffix}_sensor_link"/>
+      <parent link="${namespace}/uwl${suffix}_link"/>
+      <child link="${namespace}/uwl${suffix}_sensor_link"/>
     </joint>
 
-   <gazebo reference="${namespace}/uw_lidar${suffix}_sensor_link">
+   <gazebo reference="${namespace}/uwl${suffix}_sensor_link">
      <sensor name="uw_lidar_sensor" type="gpu_ray">
        <pose>0 0 0 0 0 0</pose>
        <update_rate>${update_rate}</update_rate>      
@@ -291,14 +291,13 @@
        </ray>      
      </sensor>   
    </gazebo>
- 
   </xacro:macro>
 
 
   <!-- Generates the uw_lidar model and plugin -->
   <xacro:macro name="uw_lidar_plugin_macro"
     params="namespace suffix parent_link *origin">
-    <link name="${namespace}/uw_lidar${suffix}_link">
+    <link name="${namespace}/uwl${suffix}_link">
       <inertial>
         <mass value="20.9"/>
         <origin xyz="0 0 0.163" rpy="0 0 0"/>
@@ -318,7 +317,7 @@
       </collision>
     </link>
 
-    <link name="${namespace}/uw_lidar${suffix}_mount_tray_link">
+    <link name="${namespace}/uwl${suffix}_mount_tray_link">
       <inertial>
         <mass value="3.29"/>
         <origin xyz="0 0 0" rpy="0 ${0.5*pi} 0"/>
@@ -339,7 +338,7 @@
     </link>
 
 
-    <link name="${namespace}/uw_lidar${suffix}_mount_swivel_link">
+    <link name="${namespace}/uwl${suffix}_mount_swivel_link">
       <inertial>
         <mass value="1"/>
         <origin xyz="0 0 0.0375" rpy="0 0 0"/>
@@ -360,7 +359,7 @@
     </link>
 
 
-    <link name="${namespace}/uw_lidar${suffix}_mount_base_link">
+    <link name="${namespace}/uwl${suffix}_mount_base_link">
       <inertial>
         <mass value="2.84"/>
         <origin xyz="0 0 0.06" rpy="0 0 0"/>
@@ -380,32 +379,32 @@
       </collision>
     </link>
 
-    <joint name="${namespace}/uw_lidar_tray_lidar_joint" type="fixed">
+    <joint name="${namespace}/uwl_tray_lidar_joint" type="fixed">
       <origin xyz="0 0 0" rpy="0 0 0"/>
-      <parent link="${namespace}/uw_lidar${suffix}_mount_tray_link"/>
-      <child link="${namespace}/uw_lidar${suffix}_link"/>
+      <parent link="${namespace}/uwl${suffix}_mount_tray_link"/>
+      <child link="${namespace}/uwl${suffix}_link"/>
     </joint>
 
-    <joint name="${namespace}/uw_lidar_swivel_tray_joint" type="revolute">
+    <joint name="${namespace}/uwl_swivel_tray_joint" type="revolute">
       <origin xyz="0 0 0.092" rpy="0 0 0"/>
-      <parent link="${namespace}/uw_lidar${suffix}_mount_swivel_link"/>
-      <child link="${namespace}/uw_lidar${suffix}_mount_tray_link"/>
+      <parent link="${namespace}/uwl${suffix}_mount_swivel_link"/>
+      <child link="${namespace}/uwl${suffix}_mount_tray_link"/>
       <limit upper="${pi/12}" lower="-${pi/12}" effort="0" velocity="0"/>
       <axis xyz="1 0 0"/>
     </joint>
 
-    <joint name="${namespace}/uw_lidar_base_swivel_joint" type="revolute">
+    <joint name="${namespace}/uwl_base_swivel_joint" type="revolute">
       <origin xyz="0 0 0.12" rpy="0 0 0"/>
-      <parent link="${namespace}/uw_lidar${suffix}_mount_base_link"/>
-      <child link="${namespace}/uw_lidar${suffix}_mount_swivel_link"/>
+      <parent link="${namespace}/uwl${suffix}_mount_base_link"/>
+      <child link="${namespace}/uwl${suffix}_mount_swivel_link"/>
       <limit upper="${(35*pi)/36}" lower="-${(35*pi)/36}" effort="0" velocity="0"/>
       <axis xyz="0 0 1"/>
     </joint>
 
-    <joint name="${namespace}/uw_lidar_base_joint" type="fixed">
+    <joint name="${namespace}/uwl_base_joint" type="fixed">
       <xacro:insert_block name="origin"/>
       <parent link="${parent_link}"/>
-      <child link="${namespace}/uw_lidar${suffix}_mount_base_link"/>
+      <child link="${namespace}/uwl${suffix}_mount_base_link"/>
     </joint>
 
     <xacro:uw_lidar_sensor
@@ -413,10 +412,9 @@
       update_rate="40">
     </xacro:uw_lidar_sensor>
 
-
     <gazebo>
        <plugin name="pulse_lidar_control" filename="libgazebo_ros_pulse_lidar_plugin.so" >
-         <pan_position>-1.57079632679</pan_position>
+         <pan_position>-${pi/2}</pan_position>
          <tilt_position>0</tilt_position>
        </plugin>
     </gazebo>
