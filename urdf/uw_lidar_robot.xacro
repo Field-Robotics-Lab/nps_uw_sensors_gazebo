@@ -36,7 +36,7 @@
   </joint>
 
   <xacro:uw_lidar namespace="dvl" parent_link="robot_base_link">
-    <origin xyz="1 0 1.4" rpy="0 ${0.5*pi} 0"/>
+    <origin xyz="0.48 0 1.41" rpy="0 0 ${pi/2}"/>
   </xacro:uw_lidar>
 
   <!-- Turn gravity (off) for now so that the (unpowered) robot doesn't sink like

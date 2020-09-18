@@ -56,8 +56,8 @@ namespace gazebo
      this->model = _model;
 
      // Get the joints
-     this->pan_joint = this->model->GetJoint("3dad_sl3::base_top_joint");
-     this->tilt_joint = this->model->GetJoint("3dad_sl3::top_tray_joint");
+     this->pan_joint = this->model->GetJoint("dvl/uw_lidar_base_swivel_joint");
+     this->tilt_joint = this->model->GetJoint("dvl/uw_lidar_swivel_tray_joint");
 
      // Setup a P-controller, with _imax = 1
      this->pan_pid = common::PID(1, 0, 2.5, 1);
