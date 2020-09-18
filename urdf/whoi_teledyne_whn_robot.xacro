@@ -8,12 +8,13 @@
 
   <link name="robot_link">
     <inertial>
+      <!-- These are RexROV values to align with hydrodynamic model -->
       <origin xyz="0 0 0" rpy="0 0 0"/>
-      <mass value="200"/>
+      <mass value="1862.87"/>
       <inertia
-        ixx="96.67" ixy="0.0" ixz="0.0"
-        iyy="158.17" iyz="0.0"
-        izz="146.83"/>
+        ixx="525.39" ixy="1.44" ixz="33.41"
+        iyy="794.20" iyz="2.6"
+        izz="691.23"/>
     </inertial>
     <visual>
       <geometry>
@@ -28,6 +29,44 @@
       <origin xyz="-0.1 0 0.5" rpy="0 0 0"/>
     </collision>
   </link>
+  <gazebo>
+    <plugin name="uuv_plugin" filename="libuuv_underwater_object_ros_plugin.so">
+      <fluid_density>1028.0</fluid_density>
+      <flow_velocity_topic>hydrodynamics/current_velocity</flow_velocity_topic>
+      <debug>0</debug>
+      <!-- Adding the hydrodynamic and hydrostatic parameters for the vehicle-->
+      <link name="robot_link">
+        <neutrally_buoyant>0</neutrally_buoyant>
+        <volume>1.83826</volume>
+        <box>
+          <width>1.6</width>
+          <length>2.5</length>
+          <height>1.6</height>
+        </box>
+        <center_of_buoyancy>0.0 0.0 0.3</center_of_buoyancy>
+        <hydrodynamic_model>
+          <type>fossen</type>
+          <!-- Added mass: see p.28 in Berg2012 -->
+          <added_mass>
+             779.79 -6.8773 -103.32  8.5426 -165.54 -7.8033
+            -6.8773    1222   51.29  409.44 -5.8488  62.726
+            -103.32   51.29  3659.9  6.1112 -386.42  10.774
+            8.5426  409.44  6.1112   534.9 -10.027  21.019
+            -165.54 -5.8488 -386.42 -10.027  842.69 -1.1162
+            -7.8033  62.726  10.775  21.019 -1.1162  224.32
+          </added_mass>
+          <!-- Linear damping: see p.31 in Berg2012 -->
+          <linear_damping>
+            -74.82 -69.48 -728.4 -268.8 -309.77 -105
+          </linear_damping>
+          <!-- Non-linear damping: see p.30 in Berg2012 -->
+          <quadratic_damping>
+            -748.22 -992.53 -1821.01 -672 -774.44 -523.27
+          </quadratic_damping>
+        </hydrodynamic_model>
+      </link>
+    </plugin>
+  </gazebo>
 
   <joint name="robot_base_joint" type="fixed">
     <origin xyz="0 0 0" rpy="0 0 0"/>  <!-- X-fwd, Y-lft, Z-up (ick!) -->

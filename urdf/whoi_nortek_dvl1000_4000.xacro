@@ -96,6 +96,8 @@ POSSIBILITY OF SUCH DAMAGE.
           <beamAzimuthDeg3>45</beamAzimuthDeg3>
           <beamAzimuthDeg4>-45</beamAzimuthDeg4>
           <enableWaterTrack>1</enableWaterTrack>
+          <waterTrackBins>10</waterTrackBins>
+          <currentProfileCoordMode>0</currentProfileCoordMode>
           <pos_z_down>true</pos_z_down>
           <collide_bitmask>0x0001</collide_bitmask>
         </plugin>
