@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="gui" default="true"/>
+  <arg name="paused" default="true"/>
+  <arg name="world_name" default="$(find uuv_gazebo_worlds)/worlds/ocean_waves.world"/>
+ 
+  <!-- use Gazebo's empty_world.launch with uuv_dave_ocean_waves.world -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(arg world_name)"/>
+    <arg name="paused" value="$(arg paused)"/>
+    <arg name="use_sim_time" value="true"/>
+    <arg name="gui" value="$(arg gui)"/>
+    <arg name="headless" value="false"/>
+    <arg name="debug" value="false"/>
+    <arg name="verbose" value="false"/>
+  </include>
+
+  <!-- Load and spawn the model, starts the joint & state publishers, make the model move -->
+  <param name="uuvsim_teledyne_whn" command="$(find xacro)/xacro $(find nps_uw_sensors_gazebo)/urdf/uw_lidar_robot.xacro" />
+  <param name="model_name" type="str" value="uuvsim_teledyne_whn"/>
+  <param name="base_link_name" type="str" value="robot_base_link"/>
+  <node name="spawn_whn" pkg="gazebo_ros" type="spawn_model"
+        args="-z -1.0 -urdf -param uuvsim_teledyne_whn -model uuvsim_teledyne_whn" respawn="false" output="screen" />
+  <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" respawn="false">
+    <remap from="robot_description" to="uuvsim_teledyne_whn" />
+  </node>
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher">
+    <remap from="robot_description" to="uuvsim_teledyne_whn" />
+  </node>
+  <node name="apply_velocity" pkg="nps_uw_sensors_gazebo" type="simple_motion.py" respawn="false" output="screen"/>
+</launch>
