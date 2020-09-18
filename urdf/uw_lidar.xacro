@@ -24,7 +24,7 @@
       <geometry>
         <cylinder length="${0.000001}" radius="${0.000001}"/>
       </geometry>
-      <origin xyz="0 0 0" rpy="0 ${0.5*pi} 0"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
     </collision>
   </xacro:macro>
 
@@ -213,6 +213,88 @@
     </gazebo>
   </xacro:macro>
 
+  <!-- Generates a Lidar sensor -->
+  <xacro:macro name="uw_lidar_sensor" params="namespace suffix update_rate">
+    <link name="${namespace}/uw_lidar${suffix}_sensor_link">
+      <inertial>
+        <mass value="0.001"/>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <inertia ixx="0.000000017" ixy="0" ixz="0" iyy="0.000000017" iyz="0" izz="0.000000017"/>
+      </inertial>
+      <xacro:no_collision/>
+    </link>
+
+    <joint name="${namespace}/uw_lidar${suffix}_sensor_joint" type="fixed">
+      <origin xyz="0.014 -0.1825 0.168" rpy="0 0 -${pi/2}"/>
+      <parent link="${namespace}/uw_lidar${suffix}_link"/>
+      <child link="${namespace}/uw_lidar${suffix}_sensor_link"/>
+    </joint>
+
+   <gazebo reference="${namespace}/uw_lidar${suffix}_sensor_link">
+     <sensor name="uw_lidar_sensor" type="gpu_ray">
+       <pose>0 0 0 0 0 0</pose>
+       <update_rate>${update_rate}</update_rate>      
+       <visualize>true</visualize>
+       <always_on>true</always_on>
+
+       <plugin name="pulse_lidar_sensing" filename="libgazebo_ros_velodyne_gpu_laser.so">
+           <topicName>nps_gazebo_ros_uw/pulse_lidar/points</topicName>
+           <frameName>nps_gazebo_ros_uw/pulse_lidar_link</frameName>
+           <min_intensity>0</min_intensity>
+           <min_range>1</min_range>
+           <max_range>20</max_range>
+           <gaussianNoise>0.05</gaussianNoise>
+       </plugin>
+
+       <ray>
+         <!-- The scan element contains the horizontal and vertical beams.-->
+         <scan>
+           <!-- The horizontal beams -->
+           <horizontal>
+             <!-- # of horizontal beams simulates a spinning beam -->
+             <samples>1450</samples>
+             <!-- Resolution is multiplied by samples to determine number of
+                  simulated beams vs interpolated beams. See:
+                  http://sdformat.org/spec?ver=1.6&elem=sensor#horizontal_resolution
+                  -->
+             <resolution>0.1</resolution>
+             <!-- Minimum angle in radians -->
+             <min_angle>-0.26179938779</min_angle>
+             <!-- Maximum angle in radians -->
+             <max_angle>0.26179938779</max_angle>
+           </horizontal>
+
+           <vertical>
+             <samples>1450</samples>
+             <resolution>0.1</resolution>
+             <min_angle>-0.26179938779</min_angle>
+             <max_angle>0.26179938779</max_angle>
+           </vertical>
+         </scan>
+
+         <!-- Range defines characteristics of an individual beam -->
+         <range>
+           <!-- Minimum distance of the beam in meters-->
+           <min>1</min>
+           <!-- Maximum distance of the beam in meters. 
+                Should be between 2 and 45 meters, depending on visibility. -->
+           <max>20</max>
+           <!-- Linear resolution of each lidar ray. This _may_ refer to depth resolution. -->
+           <resolution>0.1</resolution>
+         </range>
+         <noise>
+           <!-- Use gaussian noise -->
+           <type>gaussian</type>
+           <mean>0.0</mean>
+           <stddev>0.05</stddev>
+         </noise>
+       </ray>      
+     </sensor>   
+   </gazebo>
+ 
+  </xacro:macro>
+
+
   <!-- Generates the uw_lidar model and plugin -->
   <xacro:macro name="uw_lidar_plugin_macro"
     params="namespace suffix parent_link *origin">
@@ -325,12 +407,18 @@
       <parent link="${parent_link}"/>
       <child link="${namespace}/uw_lidar${suffix}_mount_base_link"/>
     </joint>
-   <gazebo>
-      <plugin name="pulse_lidar_control" filename="libgazebo_ros_pulse_lidar_plugin.so" >
-        <pan_position>-1.57079632679</pan_position>
-        <tilt_position>0</tilt_position>
-      </plugin>
+
+    <xacro:uw_lidar_sensor
+      namespace="${namespace}" suffix=""
+      update_rate="40">
+    </xacro:uw_lidar_sensor>
+
+
+    <gazebo>
+       <plugin name="pulse_lidar_control" filename="libgazebo_ros_pulse_lidar_plugin.so" >
+         <pan_position>-1.57079632679</pan_position>
+         <tilt_position>0</tilt_position>
+       </plugin>
     </gazebo>
-  
   </xacro:macro>
 </robot>
