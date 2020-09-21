@@ -33,11 +33,13 @@
 
   <!-- Generates an Underwater Lidar model and attaches it to a parent link 
        Sensor parameters align with those in the 3D at Depth SL3 datasheet -->
-  <xacro:macro name="uwl_macro" params="namespace parent_link *origin">
+  <xacro:macro name="uwl_macro" params="namespace parent_link *origin pan tilt">
     <xacro:uw_lidar_plugin_macro
       namespace="${namespace}"
       suffix=""
-      parent_link="${parent_link}" >
+      parent_link="${parent_link}" 
+      pan="${pan}" 
+      tilt="${tilt}" >
       <xacro:insert_block name="origin"/>
     </xacro:uw_lidar_plugin_macro>
   </xacro:macro>
@@ -125,7 +127,7 @@
 
   <!-- Generates the uw_lidar model with stand and motion control plugin -->
   <xacro:macro name="uw_lidar_plugin_macro"
-    params="namespace suffix parent_link *origin">
+    params="namespace suffix parent_link *origin pan tilt">
 
     <link name="${namespace}/uwl${suffix}_link">
       <inertial>
@@ -244,8 +246,8 @@
     <gazebo>
        <plugin name="pulse_lidar_control" filename="libgazebo_ros_pulse_lidar_plugin.so" >
         <robot_namespace>${namespace}</robot_namespace> 
-         <pan_position>0</pan_position>
-         <tilt_position>0</tilt_position>
+         <pan_position>${pan}</pan_position>
+         <tilt_position>${tilt}</tilt_position>
        </plugin>
     </gazebo>
   </xacro:macro>

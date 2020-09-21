@@ -35,7 +35,7 @@
     <child link="robot_link"/>
   </joint>
 
-  <xacro:uwl_macro namespace="uwl" parent_link="robot_base_link">
+  <xacro:uwl_macro namespace="uwl" parent_link="robot_base_link" pan="0" tilt="0">
     <origin xyz="0.48 0 1.41" rpy="0 0 ${pi/2}"/>
   </xacro:uwl_macro>
 
