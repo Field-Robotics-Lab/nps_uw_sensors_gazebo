@@ -396,7 +396,7 @@
       <origin xyz="0 0 0.092" rpy="0 0 0"/>
       <parent link="${namespace}/uwl${suffix}_mount_swivel_link"/>
       <child link="${namespace}/uwl${suffix}_mount_tray_link"/>
-      <limit upper="${pi/12}" lower="-${pi/12}" effort="0" velocity="0"/>
+      <limit upper="${pi/12}" lower="-${pi/12}" effort="100" velocity="20"/>
       <axis xyz="1 0 0"/>
     </joint>
 
@@ -404,7 +404,7 @@
       <origin xyz="0 0 0.12" rpy="0 0 0"/>
       <parent link="${namespace}/uwl${suffix}_mount_base_link"/>
       <child link="${namespace}/uwl${suffix}_mount_swivel_link"/>
-      <limit upper="${(35*pi)/36}" lower="-${(35*pi)/36}" effort="0" velocity="0"/>
+      <limit upper="${(35*pi)/36}" lower="-${(35*pi)/36}" effort="100" velocity="20"/>
       <axis xyz="0 0 1"/>
     </joint>
 
