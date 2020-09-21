@@ -54,42 +54,10 @@ namespace gazebo
 
      // Store the model pointer for convenience.
      this->model = _model;
-     
-     if (this->pan_joint) {
-       ROS_INFO_NAMED("pulse_lidar", "pan_joint true before");
-     } 
-     else
-     {
-       ROS_INFO_NAMED("pulse_lidar", "pan_joint false before");
-     }
-     if (this->tilt_joint) {
-       ROS_INFO_NAMED("pulse_lidar", "tilt_joint true before");
-     } 
-     else
-     {
-       ROS_INFO_NAMED("pulse_lidar", "tilt_joint false before");
-     }
+
      // Get the joints
      this->pan_joint = this->model->GetJoint("uwl/uwl_base_swivel_joint");
-     ROS_INFO_NAMED("pulse_lidar", "Got uwl_base_swivel_joint");
      this->tilt_joint = this->model->GetJoint("uwl/uwl_swivel_tray_joint");
-     ROS_INFO_NAMED("pulse_lidar", "Got uwl_swivel_tray_joint");
-
-     
-     if (this->pan_joint) {
-       ROS_INFO_NAMED("pulse_lidar", "pan_joint true after");
-     } 
-     else
-     {
-       ROS_INFO_NAMED("pulse_lidar", "pan_joint false after");
-     }
-     if (this->tilt_joint) {
-       ROS_INFO_NAMED("pulse_lidar", "tilt_joint true after");
-     } 
-     else
-     {
-       ROS_INFO_NAMED("pulse_lidar", "tilt_joint false after");
-     }
 
      // Setup a P-controller, with _imax = 1
      this->pan_pid = common::PID(1, 0, 2.5, 1);
@@ -116,22 +84,15 @@ namespace gazebo
        pan_position = _sdf->Get<double>("pan_position");
        ROS_INFO_NAMED("pulse_lidar", "pan_position = %f", pan_position);
      }
-     else
-     {
-     ROS_INFO_NAMED("pulse_lidar", "No element pan_position");
-     }
+
      // Check that the velocity element exists, then read the value
      if (_sdf->HasElement("tilt_position"))
      {
        tilt_position = _sdf->Get<double>("tilt_position");
        ROS_INFO_NAMED("pulse_lidar", "tilt_position = %f", tilt_position);
-     } 
-     else
-     {
-     ROS_INFO_NAMED("pulse_lidar", "No element tilt_position");
      }
 
-     // Set the joints' target positions. 
+     // Set the joints' target positions.
      this->model->GetJointController()->SetPositionTarget(
          this->pan_joint->GetScopedName(), pan_position);
 
@@ -169,7 +130,7 @@ namespace gazebo
      // Create a named topic, and subscribe to it.
      ros::SubscribeOptions so_pan =
        ros::SubscribeOptions::create<std_msgs::Float32>(
-           "/" + this->model->GetName() + "/lidar_pan_cmd",
+           "/" + this->model->GetName() + "/pan",
            1,
            boost::bind(&GazeboRosPulseLidar::OnRosPanMsg, this, _1),
            ros::VoidPtr(), &this->rosQueue);
@@ -180,7 +141,7 @@ namespace gazebo
      // Create a named topic, and subscribe to it.
      ros::SubscribeOptions so_tilt =
        ros::SubscribeOptions::create<std_msgs::Float32>(
-           "/" + this->model->GetName() + "/lidar_tilt_cmd",
+           "/" + this->model->GetName() + "/tilt",
            1,
            boost::bind(&GazeboRosPulseLidar::OnRosTiltMsg, this, _1),
            ros::VoidPtr(), &this->rosQueue);
