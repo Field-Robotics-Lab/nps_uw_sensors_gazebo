@@ -20,6 +20,12 @@
   <!-- Generates a tiny "no-collision" cylinder for incorporation into a link
        that we do not want to collide with anything (e.g., individual DVL sonars) -->
   <xacro:macro name="no_collision">
+    <visual>
+      <geometry>
+        <cylinder length="${0.01}" radius="${0.01}"/>
+      </geometry>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </visual>
     <collision>
       <geometry>
         <cylinder length="${0.000001}" radius="${0.000001}"/>
@@ -30,7 +36,7 @@
 
   <!-- Generates an Underwater Lidar model and attaches it to a parent link 
        Sensor parameters align with those in the 3D at Depth SL3 datasheet -->
-  <xacro:macro name="uw_lidar" params="namespace parent_link *origin">
+  <xacro:macro name="uwl_macro" params="namespace parent_link *origin">
     <xacro:uw_lidar_plugin_macro
       namespace="${namespace}"
       suffix=""
@@ -236,7 +242,7 @@
        <update_rate>${update_rate}</update_rate>      
        <visualize>true</visualize>
        <always_on>true</always_on>
-
+<!--
        <plugin name="pulse_lidar_sensing" filename="libgazebo_ros_velodyne_gpu_laser.so">
            <topicName>nps_gazebo_ros_uw/pulse_lidar/points</topicName>
            <frameName>nps_gazebo_ros_uw/pulse_lidar_link</frameName>
@@ -245,7 +251,7 @@
            <max_range>20</max_range>
            <gaussianNoise>0.05</gaussianNoise>
        </plugin>
-
+-->
        <ray>
          <!-- The scan element contains the horizontal and vertical beams.-->
          <scan>
@@ -259,16 +265,16 @@
                   -->
              <resolution>0.1</resolution>
              <!-- Minimum angle in radians -->
-             <min_angle>-0.26179938779</min_angle>
+             <min_angle>${-pi/12}</min_angle>
              <!-- Maximum angle in radians -->
-             <max_angle>0.26179938779</max_angle>
+             <max_angle>${pi/12}</max_angle>
            </horizontal>
 
            <vertical>
              <samples>1450</samples>
              <resolution>0.1</resolution>
-             <min_angle>-0.26179938779</min_angle>
-             <max_angle>0.26179938779</max_angle>
+             <min_angle>${-pi/12}</min_angle>
+             <max_angle>${pi/12}</max_angle>
            </vertical>
          </scan>
 
@@ -297,6 +303,7 @@
   <!-- Generates the uw_lidar model and plugin -->
   <xacro:macro name="uw_lidar_plugin_macro"
     params="namespace suffix parent_link *origin">
+
     <link name="${namespace}/uwl${suffix}_link">
       <inertial>
         <mass value="20.9"/>
@@ -327,7 +334,7 @@
         <geometry>
           <mesh filename="package://nps_uw_sensors_gazebo/models/3dad_sl3/mesh/uw_lidar_mount_tray.dae"/>
         </geometry>
-        <origin xyz="0 0.034 0.163 " rpy="0 0 0"/>
+        <origin xyz="0 0.034 0.163" rpy="0 0 0"/>
       </visual>
       <collision>
        <geometry>
@@ -369,7 +376,7 @@
         <geometry>
           <mesh filename="package://nps_uw_sensors_gazebo/models/3dad_sl3/mesh/uw_lidar_mount_base.dae"/>
         </geometry>
-        <origin xyz="0 0.034 0.375 " rpy="0 0 0"/>
+        <origin xyz="0 0.034 0.375" rpy="0 0 0"/>
       </visual>
       <collision>
        <geometry>
@@ -414,8 +421,9 @@
 
     <gazebo>
        <plugin name="pulse_lidar_control" filename="libgazebo_ros_pulse_lidar_plugin.so" >
+        <robot_namespace>${namespace}</robot_namespace> <!-- (string, required): ros namespace in which the messages are published -->
          <pan_position>-${pi/2}</pan_position>
-         <tilt_position>0</tilt_position>
+         <tilt_position>0*${pi/18}</tilt_position>
        </plugin>
     </gazebo>
   </xacro:macro>
