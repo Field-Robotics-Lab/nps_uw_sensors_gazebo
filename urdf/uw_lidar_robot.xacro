@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 
-<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="teledyne_whn">
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="uw_lidar">
 
   <xacro:include filename="$(find nps_uw_sensors_gazebo)/urdf/uw_lidar.xacro"/>
 
@@ -35,9 +35,9 @@
     <child link="robot_link"/>
   </joint>
 
-  <xacro:uw_lidar namespace="uwl" parent_link="robot_base_link">
+  <xacro:uwl_macro namespace="uwl" parent_link="robot_base_link">
     <origin xyz="0.48 0 1.41" rpy="0 0 ${pi/2}"/>
-  </xacro:uw_lidar>
+  </xacro:uwl_macro>
 
   <!-- Turn gravity (off) for now so that the (unpowered) robot doesn't sink like
        a rock.  Can remove this once the neutral buoyancy issue (#4) is resolved -->
