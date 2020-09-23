@@ -50,6 +50,8 @@ GazeboRosDepthCamera::GazeboRosDepthCamera()
   this->depth_image_connect_count_ = 0;
   this->normals_image_connect_count_ = 0;
   this->depth_info_connect_count_ = 0;
+  this->point_cloud_cutoff_ = 0.4;
+  this->sonar_point_cloud_connect_count_ = 0;
   this->last_depth_image_camera_info_update_time_ = common::Time(0);
 }
 
@@ -61,7 +63,8 @@ GazeboRosDepthCamera::~GazeboRosDepthCamera()
 
 ////////////////////////////////////////////////////////////////////////////////
 // Load the controller
-void GazeboRosDepthCamera::Load(sensors::SensorPtr _parent, sdf::ElementPtr _sdf)
+void GazeboRosDepthCamera::Load(sensors::SensorPtr _parent,
+                                sdf::ElementPtr _sdf)
 {
   std::cout << "nps_gazebo_ros_depth_camera_sonar_single_beam";
   DepthCameraPlugin::Load(_parent, _sdf);
@@ -69,8 +72,10 @@ void GazeboRosDepthCamera::Load(sensors::SensorPtr _parent, sdf::ElementPtr _sdf
   // Make sure the ROS node for Gazebo has already been initialized
   if (!ros::isInitialized())
   {
-    ROS_FATAL_STREAM_NAMED("depth_camera", "A ROS node for Gazebo has not been initialized, unable to load plugin. "
-      << "Load the Gazebo system plugin 'libgazebo_ros_api_plugin.so' in the gazebo_ros package)");
+    ROS_FATAL_STREAM_NAMED("depth_camera", "A ROS node for Gazebo has not "
+                           "been initialized, unable to load plugin. Load the "
+                           "Gazebo system plugin 'libgazebo_ros_api_plugin.so' "
+                           "in the gazebo_ros package)");
     return;
   }
 
@@ -92,30 +97,36 @@ void GazeboRosDepthCamera::Load(sensors::SensorPtr _parent, sdf::ElementPtr _sdf
   if (!_sdf->HasElement("pointCloudTopicName"))
     this->point_cloud_topic_name_ = "points";
   else
-    this->point_cloud_topic_name_ = _sdf->GetElement("pointCloudTopicName")->Get<std::string>();
+    this->point_cloud_topic_name_ =
+      _sdf->GetElement("pointCloudTopicName")->Get<std::string>();
 
   // depth image and normals stuff
   if (!_sdf->HasElement("depthImageTopicName"))
     this->depth_image_topic_name_ = "depth/image_raw";
   else
-    this->depth_image_topic_name_ = _sdf->GetElement("depthImageTopicName")->Get<std::string>();
+    this->depth_image_topic_name_ =
+      _sdf->GetElement("depthImageTopicName")->Get<std::string>();
 
   if (!_sdf->HasElement("normalsImageTopicName"))
     this->normals_image_topic_name_ = "normals/image_raw";
   else
-    this->normals_image_topic_name_ = _sdf->GetElement("normalsImageTopicName")->Get<std::string>();
+    this->normals_image_topic_name_ =
+      _sdf->GetElement("normalsImageTopicName")->Get<std::string>();
 
   if (!_sdf->HasElement("depthImageCameraInfoTopicName"))
     this->depth_image_camera_info_topic_name_ = "depth/camera_info";
   else
-    this->depth_image_camera_info_topic_name_ = _sdf->GetElement("depthImageCameraInfoTopicName")->Get<std::string>();
+    this->depth_image_camera_info_topic_name_ =
+      _sdf->GetElement("depthImageCameraInfoTopicName")->Get<std::string>();
 
   if (!_sdf->HasElement("pointCloudCutoff"))
     this->point_cloud_cutoff_ = 0.4;
   else
-    this->point_cloud_cutoff_ = _sdf->GetElement("pointCloudCutoff")->Get<double>();
+    this->point_cloud_cutoff_ =
+      _sdf->GetElement("pointCloudCutoff")->Get<double>();
 
-  load_connection_ = GazeboRosCameraUtils::OnLoad(boost::bind(&GazeboRosDepthCamera::Advertise, this));
+  load_connection_ = GazeboRosCameraUtils::OnLoad(boost::bind(
+                       &GazeboRosDepthCamera::Advertise, this));
   GazeboRosCameraUtils::Load(_parent, _sdf);
 }
 
@@ -151,7 +162,8 @@ void GazeboRosDepthCamera::Advertise()
         boost::bind(&GazeboRosDepthCamera::DepthInfoConnect, this),
         boost::bind(&GazeboRosDepthCamera::DepthInfoDisconnect, this),
         ros::VoidPtr(), &this->camera_queue_);
-  this->depth_image_camera_info_pub_ = this->rosnode_->advertise(depth_image_camera_info_ao);
+  this->depth_image_camera_info_pub_ =
+    this->rosnode_->advertise(depth_image_camera_info_ao);
 }
 
 
@@ -229,9 +241,11 @@ std::cout << "OnNewDepthFrame\n";
     return;
 
 # if GAZEBO_MAJOR_VERSION >= 7
-  this->depth_sensor_update_time_ = this->parentSensor->LastMeasurementTime();
+  this->depth_sensor_update_time_ =
+    this->parentSensor->LastMeasurementTime();
 # else
-  this->depth_sensor_update_time_ = this->parentSensor->GetLastMeasurementTime();
+  this->depth_sensor_update_time_ =
+    this->parentSensor->GetLastMeasurementTime();
 # endif
 
   if (this->parentSensor->IsActive())
@@ -257,7 +271,8 @@ std::cout << "OnNewDepthFrame\n";
     if (this->point_cloud_connect_count_ > 0 ||
         this->depth_image_connect_count_ <= 0 ||  // zz why?
         this->normals_image_connect_count_ <= 0)
-      // do this first so there's chance for sensor to run 1 frame after activate
+      // do this first so there's chance for sensor to run 1
+      // frame after activate
       this->parentSensor->SetActive(true);
   }
 }
@@ -273,15 +288,18 @@ std::cout << "OnNewRGBPointCloud\n";
     return;
 
 # if GAZEBO_MAJOR_VERSION >= 7
-  this->depth_sensor_update_time_ = this->parentSensor->LastMeasurementTime();
+  this->depth_sensor_update_time_ =
+    this->parentSensor->LastMeasurementTime();
 # else
-  this->depth_sensor_update_time_ = this->parentSensor->GetLastMeasurementTime();
+  this->depth_sensor_update_time_ =
+    this->parentSensor->GetLastMeasurementTime();
 # endif
 
   if (!this->parentSensor->IsActive())
   {
     if (this->point_cloud_connect_count_ > 0)
-      // do this first so there's chance for sensor to run 1 frame after activate
+      // do this first so there's chance for sensor to run 1
+      // frame after activate
       this->parentSensor->SetActive(true);
   }
   else
@@ -289,12 +307,15 @@ std::cout << "OnNewRGBPointCloud\n";
     if (this->point_cloud_connect_count_ > 0)
     {
       this->lock_.lock();
-      this->point_cloud_msg_.header.frame_id = this->frame_name_;
-      this->point_cloud_msg_.header.stamp.sec = this->depth_sensor_update_time_.sec;
-      this->point_cloud_msg_.header.stamp.nsec = this->depth_sensor_update_time_.nsec;
-      this->point_cloud_msg_.width = this->width;
-      this->point_cloud_msg_.height = this->height;
-      this->point_cloud_msg_.row_step = this->point_cloud_msg_.point_step * this->width;
+      this->point_cloud_msg_.header.frame_id   = this->frame_name_;
+      this->point_cloud_msg_.header.stamp.sec  =
+                               this->depth_sensor_update_time_.sec;
+      this->point_cloud_msg_.header.stamp.nsec =
+                              this->depth_sensor_update_time_.nsec;
+      this->point_cloud_msg_.width             = this->width;
+      this->point_cloud_msg_.height            = this->height;
+      this->point_cloud_msg_.row_step          =
+                   this->point_cloud_msg_.point_step * this->width;
 
       sensor_msgs::PointCloud2Modifier pcd_modifier(point_cloud_msg_);
       pcd_modifier.setPointCloud2FieldsByString(2, "xyz", "rgb");
@@ -309,7 +330,8 @@ std::cout << "OnNewRGBPointCloud\n";
 
       for (unsigned int i = 0; i < _width; i++)
       {
-        for (unsigned int j = 0; j < _height; j++, ++iter_x, ++iter_y, ++iter_z, ++iter_rgb)
+        for (unsigned int j = 0; j < _height; j++, ++iter_x, ++iter_y,
+                                                   ++iter_z, ++iter_rgb)
         {
           unsigned int index = (j * _width) + i;
           *iter_x = _pcd[4 * index];
@@ -322,7 +344,7 @@ std::cout << "OnNewRGBPointCloud\n";
             uint8_t r = (rgb >> 16) & 0x0000ff;
             uint8_t g = (rgb >> 8)  & 0x0000ff;
             uint8_t b = (rgb)       & 0x0000ff;
-            std::cerr << static_cast<int>(r) << " " << static_cast<int>(g) 
+            std::cerr << static_cast<int>(r) << " " << static_cast<int>(g)
                       << " " << static_cast<int>(b) << std::endl;
           }
         }
@@ -344,7 +366,10 @@ std::cout << "OnNewImageFrame\n";
   if (!this->initialized_ || this->height_ <=0 || this->width_ <=0)
     return;
 
-  // ROS_ERROR_NAMED("depth_camera", "camera_ new frame %s %s",this->parentSensor_->GetName().c_str(),this->frame_name_.c_str());
+  // ROS_ERROR_NAMED("depth_camera", "camera_ new frame %s %s",
+  //                 this->parentSensor_->GetName().c_str(),
+  //                 this->frame_name_.c_str());
+
 # if GAZEBO_MAJOR_VERSION >= 7
   this->sensor_update_time_ = this->parentSensor->LastMeasurementTime();
 # else
@@ -354,7 +379,8 @@ std::cout << "OnNewImageFrame\n";
   if (!this->parentSensor->IsActive())
   {
     if ((*this->image_connect_count_) > 0)
-      // do this first so there's chance for sensor to run 1 frame after activate
+      // do this first so there's chance for sensor to run 1
+      // frame after activate
       this->parentSensor->SetActive(true);
   }
   else
@@ -374,12 +400,15 @@ void GazeboRosDepthCamera::FillPointdCloud(const float *_src)
 {
   this->lock_.lock();
 
-  this->point_cloud_msg_.header.frame_id = this->frame_name_;
-  this->point_cloud_msg_.header.stamp.sec = this->depth_sensor_update_time_.sec;
-  this->point_cloud_msg_.header.stamp.nsec = this->depth_sensor_update_time_.nsec;
-  this->point_cloud_msg_.width = this->width;
-  this->point_cloud_msg_.height = this->height;
-  this->point_cloud_msg_.row_step = this->point_cloud_msg_.point_step * this->width;
+  this->point_cloud_msg_.header.frame_id   = this->frame_name_;
+  this->point_cloud_msg_.header.stamp.sec  =
+                           this->depth_sensor_update_time_.sec;
+  this->point_cloud_msg_.header.stamp.nsec =
+                          this->depth_sensor_update_time_.nsec;
+  this->point_cloud_msg_.width             = this->width;
+  this->point_cloud_msg_.height            = this->height;
+  this->point_cloud_msg_.row_step          =
+               this->point_cloud_msg_.point_step * this->width;
 
   // copy from depth to point cloud message
   FillPointCloudHelper(this->point_cloud_msg_,
@@ -399,9 +428,11 @@ void GazeboRosDepthCamera::FillDepthImage(const float *_src)
 {
   this->lock_.lock();
   // copy data into image
-  this->depth_image_msg_.header.frame_id = this->frame_name_;
-  this->depth_image_msg_.header.stamp.sec = this->depth_sensor_update_time_.sec;
-  this->depth_image_msg_.header.stamp.nsec = this->depth_sensor_update_time_.nsec;
+  this->depth_image_msg_.header.frame_id   = this->frame_name_;
+  this->depth_image_msg_.header.stamp.sec  =
+                           this->depth_sensor_update_time_.sec;
+  this->depth_image_msg_.header.stamp.nsec =
+                          this->depth_sensor_update_time_.nsec;
 
   // copy from depth to depth image message
   FillDepthImageHelper(this->depth_image_msg_,
@@ -435,7 +466,8 @@ bool GazeboRosDepthCamera::FillDepthImageHelper(
   int index = 0;
 
   // convert depth to image
-std::cout << "FillDepthImageHelper rows: " << rows_arg << " cols: " << cols_arg << "\n";
+  std::cout << "FillDepthImageHelper rows: " << rows_arg
+            << " cols: " << cols_arg << std:endl;
   for (uint32_t j = 0; j < rows_arg; j++)
   {
     for (uint32_t i = 0; i < cols_arg; i++)
@@ -491,7 +523,8 @@ bool GazeboRosDepthCamera::FillPointCloudHelper(
       pAngle = 0.0;
     }
 
-    for (uint32_t i = 0; i < cols_arg; i++, ++iter_x, ++iter_y, ++iter_z, ++iter_rgb)
+    for (uint32_t i = 0; i < cols_arg; i++, ++iter_x, ++iter_y,
+                                            ++iter_z, ++iter_rgb)
     {
       double yAngle;
       if (cols_arg > 1)
@@ -523,7 +556,9 @@ bool GazeboRosDepthCamera::FillPointCloudHelper(
       }
 
       // put image color data for each point
-      uint8_t*  image_src = reinterpret_cast<uint8_t*>(&(this->image_msg_.data[0]));
+      uint8_t* image_src =
+        reinterpret_cast<uint8_t*>(&(this->image_msg_.data[0]));
+
       if (this->image_msg_.data.size() == rows_arg*cols_arg*3)
       {
         // color
@@ -566,9 +601,11 @@ std::cout << "OnNewNormalsFrame\n";
     return;
 
 # if GAZEBO_MAJOR_VERSION >= 7
-  this->normals_sensor_update_time_ = this->parentSensor->LastMeasurementTime();
+  this->normals_sensor_update_time_ =
+    this->parentSensor->LastMeasurementTime();
 # else
-  this->normals_sensor_update_time_ = this->parentSensor->GetLastMeasurementTime();
+  this->normals_sensor_update_time_ =
+    this->parentSensor->GetLastMeasurementTime();
 # endif
 
   if (this->parentSensor->IsActive())
@@ -597,7 +634,8 @@ std::cout << "OnNewNormalsFrame\n";
     if (this->point_cloud_connect_count_ > 0 ||
         this->depth_image_connect_count_ <= 0 ||  // zz why?
         this->normals_image_connect_count_ <= 0)
-      // do this first so there's chance for sensor to run 1 frame after activate
+      // do this first so there's chance for sensor to run 1
+      // frame after activate
       this->parentSensor->SetActive(true);
   }
 }
@@ -608,9 +646,11 @@ void GazeboRosDepthCamera::FillNormalsImage(const float *_src)
 {
   this->lock_.lock();
   // copy data into image
-  this->normals_image_msg_.header.frame_id = this->frame_name_;
-  this->normals_image_msg_.header.stamp.sec = this->normals_sensor_update_time_.sec;
-  this->normals_image_msg_.header.stamp.nsec = this->normals_sensor_update_time_.nsec;
+  this->normals_image_msg_.header.frame_id   = this->frame_name_;
+  this->normals_image_msg_.header.stamp.sec  =
+                           this->normals_sensor_update_time_.sec;
+  this->normals_image_msg_.header.stamp.nsec =
+                          this->normals_sensor_update_time_.nsec;
 
   // copy from normals to normals image message
   FillNormalsImageHelper(this->normals_image_msg_,
@@ -653,26 +693,33 @@ bool GazeboRosDepthCamera::FillNormalsImageHelper(
 
 void GazeboRosDepthCamera::PublishCameraInfo()
 {
-  ROS_DEBUG_NAMED("depth_camera", "publishing default camera info, then depth camera info");
+  ROS_DEBUG_NAMED("depth_camera", "publishing default camera info,"
+                  " then depth camera info");
   GazeboRosCameraUtils::PublishCameraInfo();
 
   if (this->depth_info_connect_count_ > 0)
   {
 # if GAZEBO_MAJOR_VERSION >= 7
-    common::Time sensor_update_time = this->parentSensor_->LastMeasurementTime();
+    common::Time sensor_update_time =
+      this->parentSensor_->LastMeasurementTime();
 # else
-    common::Time sensor_update_time = this->parentSensor_->GetLastMeasurementTime();
+    common::Time sensor_update_time =
+      this->parentSensor_->GetLastMeasurementTime();
 # endif
     this->sensor_update_time_ = sensor_update_time;
-    if (sensor_update_time - this->last_depth_image_camera_info_update_time_ >= this->update_period_)
+    if (sensor_update_time - this->last_depth_image_camera_info_update_time_ >=
+        this->update_period_)
     {
-      this->PublishCameraInfo(this->depth_image_camera_info_pub_);  // , sensor_update_time);
+//    this->PublishCameraInfo(this->depth_image_camera_info_pub_ ,
+//                            sensor_update_time);
+      this->PublishCameraInfo(this->depth_image_camera_info_pub_);
       this->last_depth_image_camera_info_update_time_ = sensor_update_time;
     }
   }
 }
 
-// @todo: publish disparity similar to openni_camera_deprecated/src/nodelets/openni_nodelet.cpp.
+// @todo: publish disparity similar to
+//        openni_camera_deprecated/src/nodelets/openni_nodelet.cpp.
 /*
 #include <stereo_msgs/DisparityImage.h>
 pub_disparity_ = comm_nh.advertise<stereo_msgs::DisparityImage > ("depth/disparity", 5, subscriberChanged2, subscriberChanged2);
