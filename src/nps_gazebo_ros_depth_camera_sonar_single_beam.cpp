@@ -25,7 +25,7 @@
 #include <boost/thread/thread.hpp>
 #include <boost/bind.hpp>
 
-#include "nps_uw_sensors_gazebo/nps_gazebo_ros_depth_camera_sonar_single_beam.h"
+#include "nps_uw_sensors_gazebo/nps_gazebo_ros_depth_camera_sonar_single_beam.hh"
 
 #include <gazebo/sensors/Sensor.hh>
 #include <sdf/sdf.hh>
