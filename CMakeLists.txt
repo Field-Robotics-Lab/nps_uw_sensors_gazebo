@@ -32,7 +32,7 @@ target_link_libraries(nps_gazebo_ros_gpu_sonar_single_beam_plugin
 
 add_library(nps_gazebo_ros_depth_camera_sonar_single_beam_plugin
             src/nps_gazebo_ros_depth_camera_sonar_single_beam.cpp
-            src/nps_gazebo_ros_depth_camera_sonar_single_beam.h)
+            include/nps_uw_sensors_gazebo/nps_gazebo_ros_depth_camera_sonar_single_beam.hh)
 target_link_libraries(nps_gazebo_ros_depth_camera_sonar_single_beam_plugin
                       DepthCameraPlugin ${catkin_LIBRARIES})
 
