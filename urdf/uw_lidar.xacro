@@ -33,11 +33,12 @@
 
   <!-- Generates an Underwater Lidar model and attaches it to a parent link 
        Sensor parameters align with those in the 3D at Depth SL3 datasheet -->
-  <xacro:macro name="uwl_macro" params="namespace parent_link *origin pan tilt">
+  <xacro:macro name="uwl_macro" params="namespace parent_link *origin pan tilt inertial_reference_frame">
     <xacro:uw_lidar_plugin_macro
       namespace="${namespace}"
       suffix=""
       parent_link="${parent_link}" 
+      reference_frame="${inertial_reference_frame}"
       pan="${pan}" 
       tilt="${tilt}" >
       <xacro:insert_block name="origin"/>
@@ -46,7 +47,7 @@
 
 
   <!-- Generates a Lidar sensor -->
-  <xacro:macro name="uw_lidar_sensor" params="namespace suffix update_rate">
+  <xacro:macro name="uw_lidar_sensor" params="namespace suffix update_rate reference_frame">
     <link name="${namespace}/uwl${suffix}_sensor_link">
       <inertial>
         <mass value="0.001"/>
@@ -70,8 +71,8 @@
        <always_on>true</always_on>
 
        <plugin name="pulse_lidar_sensing" filename="libgazebo_ros_velodyne_gpu_laser.so">
-           <topicName>nps_uwl/points</topicName>
-           <frameName>nps_uwl/pulse_lidar_link</frameName>
+           <topicName>nps_uwl_points</topicName>
+           <static_reference_frame>${reference_frame}</static_reference_frame>
            <min_intensity>0</min_intensity>
            <min_range>1</min_range>
            <max_range>20</max_range>
@@ -127,7 +128,7 @@
 
   <!-- Generates the uw_lidar model with stand and motion control plugin -->
   <xacro:macro name="uw_lidar_plugin_macro"
-    params="namespace suffix parent_link *origin pan tilt">
+    params="namespace suffix parent_link *origin pan tilt reference_frame">
 
     <link name="${namespace}/uwl${suffix}_link">
       <inertial>
@@ -240,7 +241,7 @@
 
     <xacro:uw_lidar_sensor
       namespace="${namespace}" suffix=""
-      update_rate="40">
+      update_rate="40" reference_frame="${reference_frame}">
     </xacro:uw_lidar_sensor>
 
     <gazebo>

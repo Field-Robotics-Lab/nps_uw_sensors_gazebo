@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="uw_lidar">
-
+  <xacro:arg name="inertial_reference_frame" default="world"/>
   <xacro:include filename="$(find nps_uw_sensors_gazebo)/urdf/uw_lidar.xacro"/>
 
   <link name="robot_base_link"/>
@@ -35,7 +35,9 @@
     <child link="robot_link"/>
   </joint>
 
-  <xacro:uwl_macro namespace="uwl" parent_link="robot_base_link" pan="0" tilt="0">
+  <xacro:uwl_macro namespace="uwl" parent_link="robot_base_link" 
+                   inertial_reference_frame="$(arg inertial_reference_frame)"
+                   pan="0" tilt="0">
     <origin xyz="0.48 0 1.41" rpy="0 0 ${pi/2}"/>
   </xacro:uwl_macro>
 
