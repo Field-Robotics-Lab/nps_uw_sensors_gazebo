@@ -36,15 +36,6 @@
 #include <std_msgs/Float64.h>
 #include <image_transport/image_transport.h>
 
-// gazebo stuff
-#include <sdf/Param.hh>
-#include <gazebo/physics/physics.hh>
-#include <gazebo/transport/TransportTypes.hh>
-#include <gazebo/msgs/MessageTypes.hh>
-#include <gazebo/common/Time.hh>
-#include <gazebo/sensors/SensorTypes.hh>
-#include <gazebo/plugins/DepthCameraPlugin.hh>
-
 // dynamic reconfigure stuff
 #include <gazebo_plugins/GazeboRosCameraConfig.h>
 #include <dynamic_reconfigure/server.h>
@@ -54,6 +45,17 @@
 
 // camera stuff
 #include <gazebo_plugins/gazebo_ros_camera_utils.h>
+
+// gazebo stuff
+#include <sdf/Param.hh>
+#include <gazebo/physics/physics.hh>
+#include <gazebo/transport/TransportTypes.hh>
+#include <gazebo/msgs/MessageTypes.hh>
+#include <gazebo/common/Time.hh>
+#include <gazebo/sensors/SensorTypes.hh>
+#include <gazebo/plugins/DepthCameraPlugin.hh>
+
+#include <string>
 
 namespace gazebo
 {
@@ -123,7 +125,8 @@ namespace gazebo
     private: void RayImageDisconnect();
     private: common::Time last_depth_image_camera_info_update_time_;
 
-    private: bool FillPointCloudHelper(sensor_msgs::PointCloud2 &point_cloud_msg,
+    private: bool FillPointCloudHelper(
+                                  sensor_msgs::PointCloud2 &point_cloud_msg,
                                   uint32_t rows_arg, uint32_t cols_arg,
                                   uint32_t step_arg, void* data_arg);
 
@@ -135,7 +138,8 @@ namespace gazebo
                                   uint32_t rows_arg, uint32_t cols_arg,
                                   uint32_t step_arg, void* data_arg);
 
-    /// \brief A pointer to the ROS node.  A node will be instantiated if it does not exist.
+    /// \brief A pointer to the ROS node.
+    /// A node will be instantiated if it does not exist.
     private: ros::Publisher point_cloud_pub_;
 
     private: ros::Publisher depth_image_pub_;
