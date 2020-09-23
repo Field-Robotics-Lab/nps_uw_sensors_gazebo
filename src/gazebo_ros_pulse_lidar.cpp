@@ -107,13 +107,6 @@ namespace gazebo
      this->node->Init(this->model->GetWorld()->Name());
      #endif
 
-     // Create a topic name
-     std::string topicName = "~/" + this->model->GetName() + "/lidar_cmd";
-
-     // Subscribe to the topic, and register a callback
-     this->sub = this->node->Subscribe(topicName,
-        &GazeboRosPulseLidar::OnMsg, this);
-
      // Initialize ros, if it has not already bee initialized.
      if (!ros::isInitialized())
      {
@@ -130,7 +123,7 @@ namespace gazebo
      // Create a named topic, and subscribe to it.
      ros::SubscribeOptions so_pan =
        ros::SubscribeOptions::create<std_msgs::Float32>(
-           "/" + this->model->GetName() + "/pan",
+           "/" + this->model->GetName() + "/uwl_cmd/pan",
            1,
            boost::bind(&GazeboRosPulseLidar::OnRosPanMsg, this, _1),
            ros::VoidPtr(), &this->rosQueue);
@@ -141,7 +134,7 @@ namespace gazebo
      // Create a named topic, and subscribe to it.
      ros::SubscribeOptions so_tilt =
        ros::SubscribeOptions::create<std_msgs::Float32>(
-           "/" + this->model->GetName() + "/tilt",
+           "/" + this->model->GetName() + "/uwl_cmd/tilt",
            1,
            boost::bind(&GazeboRosPulseLidar::OnRosTiltMsg, this, _1),
            ros::VoidPtr(), &this->rosQueue);
