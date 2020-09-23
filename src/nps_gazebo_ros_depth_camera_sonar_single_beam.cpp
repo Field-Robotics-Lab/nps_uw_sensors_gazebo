@@ -467,7 +467,7 @@ bool GazeboRosDepthCamera::FillDepthImageHelper(
 
   // convert depth to image
   std::cout << "FillDepthImageHelper rows: " << rows_arg
-            << " cols: " << cols_arg << std:endl;
+            << " cols: " << cols_arg << std::endl;
   for (uint32_t j = 0; j < rows_arg; j++)
   {
     for (uint32_t i = 0; i < cols_arg; i++)
