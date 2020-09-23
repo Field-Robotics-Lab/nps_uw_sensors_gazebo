@@ -20,20 +20,22 @@
    Date: 24 Sept 2008
  */
 
-#include <algorithm>
 #include <assert.h>
+#include <tf/tf.h>
+#include <sensor_msgs/point_cloud2_iterator.h>
+
 #include <boost/thread/thread.hpp>
 #include <boost/bind.hpp>
 
-#include "nps_uw_sensors_gazebo/nps_gazebo_ros_depth_camera_sonar_single_beam.hh"
+#include <algorithm>
+#include <limits>
+#include <string>
 
 #include <gazebo/sensors/Sensor.hh>
 #include <sdf/sdf.hh>
 #include <gazebo/sensors/SensorTypes.hh>
 
-#include <sensor_msgs/point_cloud2_iterator.h>
-
-#include <tf/tf.h>
+#include "nps_uw_sensors_gazebo/nps_gazebo_ros_depth_camera_sonar_single_beam.hh"
 
 namespace gazebo
 {
@@ -121,33 +123,33 @@ void GazeboRosDepthCamera::Advertise()
 {
   ros::AdvertiseOptions point_cloud_ao =
     ros::AdvertiseOptions::create<sensor_msgs::PointCloud2 >(
-      this->point_cloud_topic_name_,1,
-      boost::bind( &GazeboRosDepthCamera::PointCloudConnect,this),
-      boost::bind( &GazeboRosDepthCamera::PointCloudDisconnect,this),
+      this->point_cloud_topic_name_, 1,
+      boost::bind(&GazeboRosDepthCamera::PointCloudConnect, this),
+      boost::bind(&GazeboRosDepthCamera::PointCloudDisconnect, this),
       ros::VoidPtr(), &this->camera_queue_);
   this->point_cloud_pub_ = this->rosnode_->advertise(point_cloud_ao);
 
   ros::AdvertiseOptions depth_image_ao =
     ros::AdvertiseOptions::create< sensor_msgs::Image >(
-      this->depth_image_topic_name_,1,
-      boost::bind( &GazeboRosDepthCamera::DepthImageConnect,this),
-      boost::bind( &GazeboRosDepthCamera::DepthImageDisconnect,this),
+      this->depth_image_topic_name_, 1,
+      boost::bind(&GazeboRosDepthCamera::DepthImageConnect, this),
+      boost::bind(&GazeboRosDepthCamera::DepthImageDisconnect, this),
       ros::VoidPtr(), &this->camera_queue_);
   this->depth_image_pub_ = this->rosnode_->advertise(depth_image_ao);
 
   ros::AdvertiseOptions normals_image_ao =
     ros::AdvertiseOptions::create< sensor_msgs::Image >(
-      this->normals_image_topic_name_,1,
-      boost::bind( &GazeboRosDepthCamera::NormalsImageConnect,this),
-      boost::bind( &GazeboRosDepthCamera::NormalsImageDisconnect,this),
+      this->normals_image_topic_name_, 1,
+      boost::bind(&GazeboRosDepthCamera::NormalsImageConnect, this),
+      boost::bind(&GazeboRosDepthCamera::NormalsImageDisconnect, this),
       ros::VoidPtr(), &this->camera_queue_);
   this->normals_image_pub_ = this->rosnode_->advertise(normals_image_ao);
 
   ros::AdvertiseOptions depth_image_camera_info_ao =
     ros::AdvertiseOptions::create<sensor_msgs::CameraInfo>(
-        this->depth_image_camera_info_topic_name_,1,
-        boost::bind( &GazeboRosDepthCamera::DepthInfoConnect,this),
-        boost::bind( &GazeboRosDepthCamera::DepthInfoDisconnect,this),
+        this->depth_image_camera_info_topic_name_, 1,
+        boost::bind(&GazeboRosDepthCamera::DepthInfoConnect, this),
+        boost::bind(&GazeboRosDepthCamera::DepthInfoDisconnect, this),
         ros::VoidPtr(), &this->camera_queue_);
   this->depth_image_camera_info_pub_ = this->rosnode_->advertise(depth_image_camera_info_ao);
 }
@@ -253,7 +255,7 @@ std::cout << "OnNewDepthFrame\n";
   else
   {
     if (this->point_cloud_connect_count_ > 0 ||
-        this->depth_image_connect_count_ <= 0 || // zz why?
+        this->depth_image_connect_count_ <= 0 ||  // zz why?
         this->normals_image_connect_count_ <= 0)
       // do this first so there's chance for sensor to run 1 frame after activate
       this->parentSensor->SetActive(true);
@@ -320,7 +322,8 @@ std::cout << "OnNewRGBPointCloud\n";
             uint8_t r = (rgb >> 16) & 0x0000ff;
             uint8_t g = (rgb >> 8)  & 0x0000ff;
             uint8_t b = (rgb)       & 0x0000ff;
-            std::cerr << (int)r << " " << (int)g << " " << (int)b << "\n";
+            std::cerr << static_cast<int>(r) << " " << static_cast<int>(g) 
+                      << " " << static_cast<int>(b) << std::endl;
           }
         }
       }
@@ -341,7 +344,7 @@ std::cout << "OnNewImageFrame\n";
   if (!this->initialized_ || this->height_ <=0 || this->width_ <=0)
     return;
 
-  //ROS_ERROR_NAMED("depth_camera", "camera_ new frame %s %s",this->parentSensor_->GetName().c_str(),this->frame_name_.c_str());
+  // ROS_ERROR_NAMED("depth_camera", "camera_ new frame %s %s",this->parentSensor_->GetName().c_str(),this->frame_name_.c_str());
 # if GAZEBO_MAJOR_VERSION >= 7
   this->sensor_update_time_ = this->parentSensor->LastMeasurementTime();
 # else
@@ -378,12 +381,12 @@ void GazeboRosDepthCamera::FillPointdCloud(const float *_src)
   this->point_cloud_msg_.height = this->height;
   this->point_cloud_msg_.row_step = this->point_cloud_msg_.point_step * this->width;
 
-  ///copy from depth to point cloud message
+  // copy from depth to point cloud message
   FillPointCloudHelper(this->point_cloud_msg_,
                  this->height,
                  this->width,
                  this->skip_,
-                 (void*)_src );
+                 const_cast<void*>(reinterpret_cast<const void*>(_src)));
 
   this->point_cloud_pub_.publish(this->point_cloud_msg_);
 
@@ -400,12 +403,12 @@ void GazeboRosDepthCamera::FillDepthImage(const float *_src)
   this->depth_image_msg_.header.stamp.sec = this->depth_sensor_update_time_.sec;
   this->depth_image_msg_.header.stamp.nsec = this->depth_sensor_update_time_.nsec;
 
-  ///copy from depth to depth image message
+  // copy from depth to depth image message
   FillDepthImageHelper(this->depth_image_msg_,
                  this->height,
                  this->width,
                  this->skip_,
-                 (void*)_src );
+                 const_cast<void*>(reinterpret_cast<const void*>(_src)));
 
   this->depth_image_pub_.publish(this->depth_image_msg_);
 
@@ -427,8 +430,8 @@ bool GazeboRosDepthCamera::FillDepthImageHelper(
 
   const float bad_point = std::numeric_limits<float>::quiet_NaN();
 
-  float* dest = (float*)(&(image_msg.data[0]));
-  float* toCopyFrom = (float*)data_arg;
+  float* dest = reinterpret_cast<float*>(&(image_msg.data[0]));
+  float* toCopyFrom = reinterpret_cast<float*>(data_arg);
   int index = 0;
 
   // convert depth to image
@@ -442,7 +445,7 @@ std::cout << "FillDepthImageHelper rows: " << rows_arg << " cols: " << cols_arg 
       {
         dest[i + j * cols_arg] = depth;
       }
-      else //point in the unseeable range
+      else  // point in the unseeable range
       {
         dest[i + j * cols_arg] = bad_point;
       }
@@ -468,24 +471,38 @@ bool GazeboRosDepthCamera::FillPointCloudHelper(
 
   point_cloud_msg.is_dense = true;
 
-  float* toCopyFrom = (float*)data_arg;
+  float* toCopyFrom = reinterpret_cast<float*>(data_arg);
   int index = 0;
 
   double hfov = this->parentSensor->DepthCamera()->HFOV().Radian();
-  double fl = ((double)this->width) / (2.0 *tan(hfov/2.0));
+  double fl = (static_cast<double>(this->width)) / (2.0 *tan(hfov/2.0));
 
   // convert depth to point cloud
-  for (uint32_t j=0; j<rows_arg; j++)
+  for (uint32_t j = 0; j < rows_arg; j++)
   {
     double pAngle;
-    if (rows_arg>1) pAngle = atan2( (double)j - 0.5*(double)(rows_arg-1), fl);
-    else            pAngle = 0.0;
+    if (rows_arg > 1)
+    {
+      pAngle = atan2(static_cast<double>(j) -
+                     0.5*static_cast<double>(rows_arg-1), fl);
+    }
+    else
+    {
+      pAngle = 0.0;
+    }
 
-    for (uint32_t i=0; i<cols_arg; i++, ++iter_x, ++iter_y, ++iter_z, ++iter_rgb)
+    for (uint32_t i = 0; i < cols_arg; i++, ++iter_x, ++iter_y, ++iter_z, ++iter_rgb)
     {
       double yAngle;
-      if (cols_arg>1) yAngle = atan2( (double)i - 0.5*(double)(cols_arg-1), fl);
-      else            yAngle = 0.0;
+      if (cols_arg > 1)
+      {
+        yAngle = atan2(static_cast<double>(i) -
+                       0.5*static_cast<double>(cols_arg-1), fl);
+      }
+      else
+      {
+        yAngle = 0.0;
+      }
 
       double depth = toCopyFrom[index++];
 
@@ -495,18 +512,18 @@ bool GazeboRosDepthCamera::FillPointCloudHelper(
       // rotation from the physical camera *_frame
       *iter_x      = depth * tan(yAngle);
       *iter_y      = depth * tan(pAngle);
-      if(depth > this->point_cloud_cutoff_)
+      if (depth > this->point_cloud_cutoff_)
       {
         *iter_z    = depth;
       }
-      else //point in the unseeable range
+      else  // point in the unseeable range
       {
-        *iter_x = *iter_y = *iter_z = std::numeric_limits<float>::quiet_NaN ();
+        *iter_x = *iter_y = *iter_z = std::numeric_limits<float>::quiet_NaN();
         point_cloud_msg.is_dense = false;
       }
 
       // put image color data for each point
-      uint8_t*  image_src = (uint8_t*)(&(this->image_msg_.data[0]));
+      uint8_t*  image_src = reinterpret_cast<uint8_t*>(&(this->image_msg_.data[0]));
       if (this->image_msg_.data.size() == rows_arg*cols_arg*3)
       {
         // color
@@ -571,14 +588,14 @@ std::cout << "OnNewNormalsFrame\n";
       if (this->normals_image_connect_count_ > 0)
         this->FillNormalsImage(_normals_image);
 
-//zz        // lets perform Sonar calculations here
-   //zz     this->FillRayImage();
+// zz // lets perform Sonar calculations here
+// zz this->FillRayImage();
     }
   }
   else
   {
     if (this->point_cloud_connect_count_ > 0 ||
-        this->depth_image_connect_count_ <= 0 || // zz why?
+        this->depth_image_connect_count_ <= 0 ||  // zz why?
         this->normals_image_connect_count_ <= 0)
       // do this first so there's chance for sensor to run 1 frame after activate
       this->parentSensor->SetActive(true);
@@ -595,12 +612,12 @@ void GazeboRosDepthCamera::FillNormalsImage(const float *_src)
   this->normals_image_msg_.header.stamp.sec = this->normals_sensor_update_time_.sec;
   this->normals_image_msg_.header.stamp.nsec = this->normals_sensor_update_time_.nsec;
 
-  ///copy from normals to normals image message
+  // copy from normals to normals image message
   FillNormalsImageHelper(this->normals_image_msg_,
                  this->height,
                  this->width,
                  this->skip_,
-                 (void*)_src );
+                 const_cast<void*>(reinterpret_cast<const void*>(_src)));
 
   this->normals_image_pub_.publish(this->normals_image_msg_);
 
@@ -620,8 +637,8 @@ bool GazeboRosDepthCamera::FillNormalsImageHelper(
   image_msg.data.resize(rows_arg * cols_arg * sizeof(float) * 4);
   image_msg.is_bigendian = 0;
 
-  float* dest = (float*)(&(image_msg.data[0]));
-  float* toCopyFrom = (float*)data_arg;
+  float* dest = reinterpret_cast<float*>(&(image_msg.data[0]));
+  float* toCopyFrom = reinterpret_cast<float*>(data_arg);
 
   // accept values as they are so memcpy without looped checks
   memcpy(dest, toCopyFrom, rows_arg * cols_arg * 4 * sizeof(float));
@@ -655,7 +672,7 @@ void GazeboRosDepthCamera::PublishCameraInfo()
   }
 }
 
-//@todo: publish disparity similar to openni_camera_deprecated/src/nodelets/openni_nodelet.cpp.
+// @todo: publish disparity similar to openni_camera_deprecated/src/nodelets/openni_nodelet.cpp.
 /*
 #include <stereo_msgs/DisparityImage.h>
 pub_disparity_ = comm_nh.advertise<stereo_msgs::DisparityImage > ("depth/disparity", 5, subscriberChanged2, subscriberChanged2);
