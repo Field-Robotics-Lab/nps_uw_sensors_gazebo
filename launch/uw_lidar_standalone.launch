@@ -11,5 +11,18 @@
     <arg name="paused"      value="$(arg paused)"/>
   </include>
 
+  <!-- Load and spawn the model, starts the joint & state publishers, make the model move -->
+  <param name="nps_uwl" command="$(find xacro)/xacro $(find nps_uw_sensors_gazebo)/urdf/uw_lidar_pedestal_robot.xacro" />
+  <param name="model_name" type="str" value="nps_uwl"/>
+  <param name="base_link_name" type="str" value="robot_base_link"/>
+  <node name="spawn_uwl" pkg="gazebo_ros" type="spawn_model"
+        args="-x 2.1 -y 1.0 -z 0.26 -urdf -param nps_uwl -model nps_uwl" respawn="false" output="screen" />
+  <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" respawn="false">
+    <remap from="robot_description" to="nps_uwl" />
+  </node>
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher">
+    <remap from="robot_description" to="nps_uwl" />
+  </node>
+
 </launch>
 
