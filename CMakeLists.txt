@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(nps_uw_sensors_gazebo)
 
+add_definitions(-std=c++11)
+
 find_package(catkin REQUIRED tf gazebo_plugins)
 
 find_package(gazebo REQUIRED)
@@ -16,25 +18,43 @@ include_directories(
 )
 link_directories(${GAZEBO_LIBRARY_DIRS})
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GAZEBO_CXX_FLAGS}")
+set(SENSOR_ROS_PLUGINS_LIST "")
 
 catkin_package()
 
 ## Plugins
 
-add_library(gazebo_ros_pulse_lidar_plugin src/gazebo_ros_pulse_lidar.cpp)
-target_link_libraries(gazebo_ros_pulse_lidar_plugin 
-                      ${GAZEBO_LIBRARIES} ${roscpp_LIBRARIES})
+add_library(nps_image_sonar_ros_plugin
+            src/gazebo_ros_image_sonar.cpp)
+target_link_libraries(nps_image_sonar_ros_plugin
+                      ${OGRE_LIBRARIES} ${catkin_LIBRARIES}
+                      ${GAZEBO_LIBRARIES})
+add_dependencies(nps_image_sonar_ros_plugin ${catkin_EXPORTED_TARGETS})
+list(APPEND SENSOR_ROS_PLUGINS_LIST nps_image_sonar_ros_plugin)
 
-add_library(nps_gazebo_ros_gpu_sonar_single_beam_plugin 
-            src/nps_gazebo_ros_gpu_sonar_single_beam.cpp)
-target_link_libraries(nps_gazebo_ros_gpu_sonar_single_beam_plugin
-                      GpuRayPlugin ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES})
+#add_library(nps_gazebo_ros_image_sonar_plugin
+#            src/gazebo_ros_image_sonar.cpp
+#            include/nps_uw_sensors_gazebo/gazebo_ros_image_sonar.hh)
+#target_link_libraries(nps_gazebo_ros_image_sonar_plugin
+#                      DepthCameraPlugin ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES})
 
-add_library(nps_gazebo_ros_depth_camera_sonar_single_beam_plugin
-            src/nps_gazebo_ros_depth_camera_sonar_single_beam.cpp
-            include/nps_uw_sensors_gazebo/nps_gazebo_ros_depth_camera_sonar_single_beam.hh)
-target_link_libraries(nps_gazebo_ros_depth_camera_sonar_single_beam_plugin
-                      DepthCameraPlugin ${catkin_LIBRARIES})
+#add_library(nps_gazebo_ros_gpu_sonar_single_beam_plugin 
+#            src/nps_gazebo_ros_gpu_sonar_single_beam.cpp)
+#target_link_libraries(nps_gazebo_ros_gpu_sonar_single_beam_plugin
+#                      GpuRayPlugin ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES})
+
+#add_library(nps_gazebo_ros_depth_camera_sonar_single_beam_plugin
+#            src/nps_gazebo_ros_depth_camera_sonar_single_beam.cpp
+#            include/nps_uw_sensors_gazebo/nps_gazebo_ros_depth_camera_sonar_single_beam.hh)
+#target_link_libraries(nps_gazebo_ros_depth_camera_sonar_single_beam_plugin
+#                      DepthCameraPlugin ${catkin_LIBRARIES})
+
+# Install plugins
+install(
+  TARGETS ${SENSOR_ROS_PLUGINS_LIST}
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+)
 
 # for launch
 install(DIRECTORY launch
