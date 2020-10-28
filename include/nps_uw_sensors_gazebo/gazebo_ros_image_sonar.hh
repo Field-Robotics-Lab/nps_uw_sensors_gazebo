@@ -31,8 +31,8 @@
  *
  */
 
-#ifndef GAZEBO_ROS_DEPTH_CAMERA_HH
-#define GAZEBO_ROS_DEPTH_CAMERA_HH
+#ifndef GAZEBO_ROS_IMAGE_SONAR_HH
+#define GAZEBO_ROS_IMAGE_SONAR_HH
 
 // ros stuff
 #include <ros/ros.h>
@@ -66,9 +66,18 @@
 #include <gazebo_plugins/gazebo_ros_camera_utils.h>
 
 #include <opencv2/core.hpp>
+#include <complex>
+#include <valarray>
+#include <sstream>
+#include <chrono>
+#include "fft.hpp"
 
 namespace gazebo
 {
+  typedef std::complex<double> Complex;
+  typedef std::valarray<Complex> CArray;
+  typedef std::valarray<CArray> CArray2D;
+
   class NpsGazeboRosImageSonar : public SensorPlugin, GazeboRosCameraUtils
   {
     /// \brief Constructor
@@ -101,7 +110,33 @@ namespace gazebo
 
     /// \brief Compute a normal texture and implement sonar model
     private: void ComputeSonarImage(const float *_src);
+    private: double ComputeIncidence(double azimuth, double elevation, cv::Vec3f normal);
     private: cv::Mat ComputeNormalImage(cv::Mat& depth);
+
+    /// \brief Parameters for sonar properties
+    private: double sonarFreq;
+    private: double bandwidth;
+    private: double freqResolution;
+    private: double soundSpeed;
+    private: bool constMu;
+    private: double absorption;
+    private: double attenuation;
+    private: double mu; // surface reflectivity
+    private: double fmin;
+    private: double fmax;
+    private: double df;
+    private: int sonarCalcWidthSkips;
+    private: int sonarCalcHeightSkips;
+    private: int nBeams;
+    private: int ray_nAzimuthRays;
+    private: int ray_nElevationRays;
+
+    /// \brief CSV log writing stream for verifications
+    protected: std::ofstream writeLog;
+    protected: u_int64_t writeCounter;
+    protected: u_int64_t writeNumber;
+    protected: u_int64_t writeInterval;
+    protected: bool writeLogFlag;
 
     /// \brief Keep track of number of connctions for plugin outputs
     private: int depth_image_connect_count_;
@@ -145,6 +180,93 @@ namespace gazebo
     private: event::ConnectionPtr newDepthFrameConnection;
     private: event::ConnectionPtr newImageFrameConnection;
   };
+
+
+  ///////////////////////////////////////////
+  inline double unnormalized_sinc(double t)
+  {
+    try
+    {
+      return sin(t)/t;
+    }catch(int expn)
+    {
+      return 1.0;
+    }
+  }
+
+  ///////////////////////////////////////////
+  inline unsigned int nextPowerOf2(unsigned int n)  
+  {  
+    unsigned count = 0; 
+    if (n && !(n & (n - 1)))
+      return n;
+    while( n != 0)
+    {
+      n >>= 1;
+      count += 1;
+    }
+    return 1 << count;  
+  }  
+
+  // ///////////////////////////////////////////
+  // // https://gist.github.com/hsiuhsiu/a0c63f2555f5af7ba622d4e911a68898
+  // inline void fft(CArray &x)
+  // {
+  //   // DFT
+  //   unsigned int N = x.size(), k = N, n;
+  //   double thetaT = M_PI / N;
+  //   Complex phiT = Complex(cos(thetaT), -sin(thetaT)), T;
+  //   while (k > 1)
+  //   {
+  //     n = k;
+  //     k >>= 1;
+  //     phiT = phiT * phiT;
+  //     T = 1.0L;
+  //     for (unsigned int l = 0; l < k; l++)
+  //     {
+  //       for (unsigned int a = l; a < N; a += n)
+  //       {
+  //         unsigned int b = a + k;
+  //         Complex t = x[a] - x[b];
+  //         x[a] += x[b];
+  //         x[b] = t * T;
+  //       }
+  //       T *= phiT;
+  //     }
+  //   }
+  //   // Decimate
+  //   unsigned int m = (unsigned int)log2(N);
+  //   for (unsigned int a = 0; a < N; a++)
+  //   {
+  //     unsigned int b = a;
+  //     // Reverse bits
+  //     b = (((b & 0xaaaaaaaa) >> 1) | ((b & 0x55555555) << 1));
+  //     b = (((b & 0xcccccccc) >> 2) | ((b & 0x33333333) << 2));
+  //     b = (((b & 0xf0f0f0f0) >> 4) | ((b & 0x0f0f0f0f) << 4));
+  //     b = (((b & 0xff00ff00) >> 8) | ((b & 0x00ff00ff) << 8));
+  //     b = ((b >> 16) | (b << 16)) >> (32 - m);
+  //     if (b > a)
+  //     {
+  //       Complex t = x[a];
+  //       x[a] = x[b];
+  //       x[b] = t;
+  //     }
+  //   }
+  // }
+  // // inverse fft (in-place)
+  // inline void ifft(CArray& x)
+  // {
+  //   // conjugate the complex numbers
+  //   x = x.apply(std::conj);
+
+  //   // forward fft
+  //   fft( x );
+  //   // conjugate the complex numbers again
+  //   x = x.apply(std::conj);
+
+  //   // scale the numbers
+  //   x /= x.size();
+  // }
 
 }
 #endif
