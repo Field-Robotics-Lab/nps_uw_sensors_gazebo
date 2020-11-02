@@ -11,7 +11,7 @@ enable_language(CUDA CXX)
 # include(CheckLanguage)
 # check_language(CUDA)
 
-add_definitions(-std=c++11)
+# add_definitions(-std=c++11)
 
 find_package(catkin REQUIRED tf gazebo_plugins)
 

@@ -53,7 +53,7 @@ __global__ void vector_add(float *out, float *a, float *b, int n) {
 namespace NpsGazeboSonar {
 	void sonar_calculation(void)
 	{
-
+		// Check CUDA device
 		cudaDeviceSynchronize();
 		cudaError_t error = cudaGetLastError();
 		if(error!=cudaSuccess)
