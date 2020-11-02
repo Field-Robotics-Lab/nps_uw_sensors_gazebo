@@ -40,7 +40,7 @@ catkin_package()
 
 # add_library(nps_image_sonar_ros_plugin STATIC
 #             src/gazebo_ros_image_sonar.cpp)
-add_library(nps_image_sonar_ros_plugin STATIC
+add_library(nps_image_sonar_ros_plugin
             src/gazebo_ros_image_sonar.cpp)
 # set_target_properties(nps_image_sonar_ros_plugin
 #                       PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
