@@ -41,12 +41,13 @@
 #include <sdf/sdf.hh>
 #include <gazebo/sensors/SensorTypes.hh>
 
-
 #include <tf/tf.h>
 
 #include <sensor_msgs/image_encodings.h>
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/core/core.hpp>
+
+// #include <nps_uw_sensors_gazebo/sonar_calculation_cuda.cuh>
 
 namespace gazebo
 {
@@ -368,7 +369,6 @@ void NpsGazeboRosImageSonar::OnNewImageFrame(const unsigned char *_image,
   }
 }
 
-
 // Most of the plugin work happens here
 void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
 {
@@ -386,6 +386,8 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
   // ------------------------------------------------//
   // --------      Sonar calculations       -------- //
   // ------------------------------------------------//
+  // NpsGazeboSonar::CudaTest();
+  // Wrapper::wrapper();
   // //////////////// For calc time measure
   // auto start = std::chrono::high_resolution_clock::now();
 

@@ -62,7 +62,7 @@
           <soundSpeed>1500</soundSpeed>
           <constantReflectivity>true</constantReflectivity>
           <writeLog>true</writeLog>
-          <sonarCalcWidthSkips>30</sonarCalcWidthSkips>   <!-- max defined at <camera>-->
+          <sonarCalcWidthSkips>80</sonarCalcWidthSkips>   <!-- max defined at <camera>-->
           <sonarCalcHeightSkips>25</sonarCalcHeightSkips> <!-- max defined at <camera>-->
           <writeFrameInterval>20</writeFrameInterval>
           <!-- This name is prepended to ROS topics -->
