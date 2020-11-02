@@ -4,12 +4,12 @@ project(nps_uw_sensors_gazebo)
 ## Make sure you have installed CUDA and include in paths
 ## LD_LIBRARY_PATH=LD_LIBRARY_PATH:/usr/local/cuda-11.1/lib64
 ## PATH=$PATH:/usr/local/cuda-11.1/bin
-set(CMAKE_CUDA_COMPILER "nvcc")
+# set(CMAKE_CUDA_COMPILER "nvcc")
 
-enable_language(CUDA CXX)
+# enable_language(CUDA CXX)
 
-include(CheckLanguage)
-check_language(CUDA)
+# include(CheckLanguage)
+# check_language(CUDA)
 
 add_definitions(-std=c++11)
 
@@ -20,8 +20,8 @@ find_package(roscpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(OpenCV)
 
-find_package(CUDA  REQUIRED)
-include_directories("${CUDA_INCLUDE_DIRS}")
+# find_package(CUDA  REQUIRED)
+# include_directories(${CUDA_INCLUDE_DIRS})
 
 include_directories(${roscpp_INCLUDE_DIRS})
 include_directories(${std_msgs_INCLUDE_DIRS})
@@ -41,10 +41,9 @@ catkin_package()
 # add_library(nps_image_sonar_ros_plugin STATIC
 #             src/gazebo_ros_image_sonar.cpp)
 add_library(nps_image_sonar_ros_plugin STATIC
-            src/gazebo_ros_image_sonar.cpp
-            src/sonar_calculation_cuda.cu)
-set_target_properties(nps_image_sonar_ros_plugin
-                      PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+            src/gazebo_ros_image_sonar.cpp)
+# set_target_properties(nps_image_sonar_ros_plugin
+#                       PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 target_link_libraries(nps_image_sonar_ros_plugin
                       ${OGRE_LIBRARIES} ${catkin_LIBRARIES}
                       ${GAZEBO_LIBRARIES})
@@ -81,5 +80,5 @@ install(DIRECTORY launch
         PATTERN "*~" EXCLUDE)
 
 # for Python scripts
-catkin_install_python(PROGRAMS scripts/depth_camera_sonar.py
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+# catkin_install_python(PROGRAMS scripts/depth_camera_sonar.py
+#   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
