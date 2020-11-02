@@ -70,7 +70,10 @@
 #include <valarray>
 #include <sstream>
 #include <chrono>
+<<<<<<< HEAD
 #include "fft.hpp"
+=======
+>>>>>>> re-commit
 
 namespace gazebo
 {
@@ -130,6 +133,10 @@ namespace gazebo
     private: int nBeams;
     private: int ray_nAzimuthRays;
     private: int ray_nElevationRays;
+<<<<<<< HEAD
+=======
+    private: double ComputeIncidence(double azimuth, double elevation, cv::Vec3f normal);
+>>>>>>> re-commit
 
     /// \brief CSV log writing stream for verifications
     protected: std::ofstream writeLog;
@@ -181,8 +188,11 @@ namespace gazebo
     private: event::ConnectionPtr newImageFrameConnection;
   };
 
+<<<<<<< HEAD
 
   ///////////////////////////////////////////
+=======
+>>>>>>> re-commit
   inline double unnormalized_sinc(double t)
   {
     try
@@ -193,6 +203,7 @@ namespace gazebo
       return 1.0;
     }
   }
+<<<<<<< HEAD
 
   ///////////////////////////////////////////
   inline unsigned int nextPowerOf2(unsigned int n)  
@@ -268,5 +279,7 @@ namespace gazebo
   //   x /= x.size();
   // }
 
+=======
+>>>>>>> re-commit
 }
 #endif

@@ -227,6 +227,10 @@ void NpsGazeboRosImageSonar::Load(sensors::SensorPtr _parent,
   ROS_INFO_STREAM("==================================================");
   ROS_INFO_STREAM("============   SONAR PLUGIN LOADED   =============");
   ROS_INFO_STREAM("==================================================");
+<<<<<<< HEAD
+=======
+  ROS_INFO_STREAM("==================================================");
+>>>>>>> re-commit
   ROS_INFO_STREAM("# of Beams = " << this->nBeams);
   ROS_INFO_STREAM("# of Rays/Beam (Elevation, Azimuth) = ("
       << ray_nElevationRays << ", " << ray_nAzimuthRays << ")");
@@ -386,8 +390,11 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
   // ------------------------------------------------//
   // --------      Sonar calculations       -------- //
   // ------------------------------------------------//
+<<<<<<< HEAD
   // NpsGazeboSonar::CudaTest();
   // Wrapper::wrapper();
+=======
+>>>>>>> re-commit
   // //////////////// For calc time measure
   // auto start = std::chrono::high_resolution_clock::now();
 
@@ -536,12 +543,15 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
     }
   }
   // ----- End of sonar calculation
+<<<<<<< HEAD
 
   //////////////// For calc time measure
   // stop = std::chrono::high_resolution_clock::now(); 
   // duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start); 
   // ROS_INFO_STREAM(duration.count()/1000000 << "s");
   // ROS_INFO_STREAM("");
+=======
+>>>>>>> re-commit
 
   // Still publishing the depth image (just because)
   this->depth_image_msg_.header.frame_id = this->frame_name_;
@@ -555,6 +565,24 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
   this->depth_image_pub_.publish(this->depth_image_msg_);
 
   this->lock_.unlock();
+}
+
+// incidence angle is target's normal angle accounting for the ray's azimuth
+// and elevation
+double NpsGazeboRosImageSonar::ComputeIncidence(double azimuth, double elevation, cv::Vec3f normal)
+{
+  // ray normal from camera azimuth and elevation
+  double camera_x = cos(-azimuth)*cos(elevation);
+  double camera_y = sin(-azimuth)*cos(elevation);
+  double camera_z = sin(elevation);
+  cv::Vec3f ray_normal(camera_x, camera_y, camera_z);
+
+  // target normal with axes compensated to camera axes
+  cv::Vec3f target_normal(normal[2], -normal[0], -normal[1]);
+
+  // dot product
+  double dot_product = ray_normal.dot(target_normal);
+  return M_PI - acos(dot_product);
 }
 
 

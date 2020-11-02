@@ -30,6 +30,7 @@
       </visual>
 
       <sensor name="image_sonar" type="depth">
+<<<<<<< HEAD
         <visualize>true</visualize>
         <always_on>true</always_on>
         <update_rate>15</update_rate>
@@ -73,6 +74,52 @@
           <pointCloudTopicName>point_cloud</pointCloudTopicName>
           <depthImageTopicName>image_depth</depthImageTopicName>
           <depthImageCameraInfoTopicName>image_depth/camera_info</depthImageCameraInfoTopicName>
+=======
+	<visualize>true</visualize>
+	<always_on>true</always_on>
+	<update_rate>15</update_rate>
+	<camera>
+	  <!-- 90 degrees for the M900-90 -->
+	  <horizontal_fov>1.54719755</horizontal_fov>
+          <image>
+	    <width>512</width>
+	    <!-- Set vertical FOV by setting image height -->
+	    <!-- For 20 deg. -->
+	    <height>114</height>
+            <format>R8G8B8</format>
+          </image>
+          <clip>
+            <near>02</near> <!-- optimal 2m-60m -->
+            <far>60</far>
+          </clip>
+	  <depth_camera>
+            <output>depths</output>
+          </depth_camera>
+          <save enabled="true">
+            <path>/tmp/camera</path>
+          </save>
+	</camera>
+	<plugin filename="libnps_image_sonar_ros_plugin.so" name="forward_sonar">
+    <!-- Sonar properties -->
+    <sonarFreq>900e3</sonarFreq>
+    <bandwidth>29.5e4</bandwidth>
+    <freqResolution>100e2</freqResolution>
+    <soundSpeed>1500</soundSpeed>
+    <constantReflectivity>true</constantReflectivity>
+    <writeLog>true</writeLog>
+    <sonarCalcWidthSkips>55</sonarCalcWidthSkips>   <!-- max defined at <camera>-->
+    <sonarCalcHeightSkips>25</sonarCalcHeightSkips> <!-- max defined at <camera>-->
+    <writeFrameInterval>20</writeFrameInterval>
+	  <!-- This name is prepended to ROS topics -->
+	  <cameraName>blueview_p900</cameraName>
+	  <!-- ROS publication topics --> 
+	  <imageTopicName>image_raw</imageTopicName>
+	  <cameraInfoTopicName>image_raw/camera_info</cameraInfoTopicName>
+	  <pointCloudTopicName>point_cloud</pointCloudTopicName>
+	  <depthImageTopicName>image_depth</depthImageTopicName>
+	  <depthImageCameraInfoTopicName>image_depth/camera_info</depthImageCameraInfoTopicName>
+
+>>>>>>> re-commit
           <frameName>forward_sonar_optical_link</frameName>
         </plugin>
       </sensor>     
