@@ -47,7 +47,7 @@
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/core/core.hpp>
 
-// #include <nps_uw_sensors_gazebo/sonar_calculation_cuda.cuh>
+#include <nps_uw_sensors_gazebo/sonar_calculation_cuda.cuh>
 
 namespace gazebo
 {
@@ -386,8 +386,7 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
   // ------------------------------------------------//
   // --------      Sonar calculations       -------- //
   // ------------------------------------------------//
-  // NpsGazeboSonar::CudaTest();
-  // Wrapper::wrapper();
+  NpsGazeboSonar::sonar_calculation();
   // //////////////// For calc time measure
   // auto start = std::chrono::high_resolution_clock::now();
 
@@ -409,6 +408,7 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
   
   // Pixcel loop
   CArray2D P_Beams(CArray(nFreq), this->nBeams);
+
   // Pixcel loop for beams
   for (size_t col = 0; col < this->nBeams; col += this->sonarCalcWidthSkips)  
   {

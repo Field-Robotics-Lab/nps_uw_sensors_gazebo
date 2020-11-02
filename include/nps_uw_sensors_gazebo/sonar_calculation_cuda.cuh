@@ -38,11 +38,12 @@
 // #endif
 
 #pragma once
+#include <cuda.h>
 #include "cuda_runtime.h"
-#include "device_launch_parameters.h"
 
 #include <stdio.h>
+#include <iostream>
 
-namespace Wrapper {
-	void wrapper(void);
+namespace NpsGazeboSonar {
+	void sonar_calculation(void);
 }
