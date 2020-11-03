@@ -1,41 +1,3 @@
-// #include <nps_uw_sensors_gazebo/sonar_calculation_cuda.h>
-
-// __global__ 
-// void NpsGazeboSonar::CudaTest(float *out, float *a, float *b, int n)
-// {
-//     for(int i = 0; i < n; i++){
-//         out[i] = a[i] + b[i];
-//     }
-//     printf("CUDA Function running!!");
-//     printf("CUDA Function running!!");
-//     printf("CUDA Function running!!");
-//     printf("CUDA Function running!!");
-//     printf("CUDA Function running!!");
-//     printf("CUDA Function running!!");
-// }
-
-// #include <nps_uw_sensors_gazebo/sonar_calculation_cuda.cuh>
-
-// __device__ double data;
-
-// __global__ void sonar_calculation_kernel(void) {
-
-// 	// insert data to pass
-// 	data = 422.146146;
-// }
-
-// namespace NpsGazeboSonar {
-// 	void sonar_calculation(void)
-// 	{
-// 		sonar_calculation_kernel <<<1, 1>>> ();
-
-// 		// Pass data
-// 		typeof(data) answer;
-// 		cudaMemcpyFromSymbol(&answer, data, sizeof(double), cudaMemcpyDeviceToHost);
-// 		printf("answer: %f\n", answer);
-// 	}
-// }
-
 #include <nps_uw_sensors_gazebo/sonar_calculation_cuda.cuh>
 
 #include <math.h>
@@ -49,6 +11,13 @@
 #include <unistd.h>
 #include <curand.h>
 #include <curand_kernel.h>
+
+// For FFT
+#include <cufft.h>
+#include <cufftw.h>
+#include <list>
+#include <thrust/device_vector.h>
+
 
 static inline void _safe_cuda_call(cudaError err, const char* msg, 
 									const char* file_name, const int line_number)
@@ -85,10 +54,9 @@ __device__ float compute_incidence(float azimuth, float elevation, float *normal
   float dot_product = ray_normal[0]*target_normal[0]
   					   + ray_normal[1]*target_normal[1]
 						 + ray_normal[2]*target_normal[2];
-  if (dot_product < -1)
-	  dot_product = -1;
-  if (dot_product > 1)
-	  dot_product = 1;
+
+  if (dot_product < -1) dot_product = -1;
+  if (dot_product > 1) dot_product = 1;
 
   return M_PI - acos(dot_product);
 }
@@ -100,22 +68,6 @@ __device__ float unnormalized_sinc(float t)
 		return 1.0;
 	else
 		return sin(t)/t;
-}
-
-///////////////////////////////////////////////////////////////////////////
-/* this GPU kernel function is used to initialize the random states */
-__global__ void init(unsigned int seed, curandState_t* states)
-{
-	/* we have to initialize the state */
-	curand_init(seed, /* the seed can be the same for each core, here we pass the time in from the CPU */
-				blockIdx.x, /* the sequence number should be different for each core (unless you want all
-							   cores to get the same sequence of numbers for some reason - use thread id! */
-				0, /* the offset is how much extra we advance in the sequence for each call, can be 0 */
-				&states[blockIdx.x]);
-}
-__global__ void init2(unsigned int seed, curandState_t* states)
-{
-	curand_init(seed, blockIdx.x, 100, &states[blockIdx.x]);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -142,7 +94,6 @@ __global__ void sonar_calculation(thrust::complex<float> *P_Beams,
 									int nFreq, float bandwidth,
 									float mu, float attenuation)
 {
-
 	//2D Index of current thread
 	const int xIndex = blockIdx.x * blockDim.x + threadIdx.x;
 	const int yIndex = blockIdx.y * blockDim.y + threadIdx.y;
@@ -187,22 +138,6 @@ __global__ void sonar_calculation(thrust::complex<float> *P_Beams,
 		thrust::complex<float> rms_scaler = 
 					thrust::complex<float>(1.0 / sqrt(2.0), 0.0);
 		thrust::complex<float> amplitude = random_unit * rms_scaler * area * beamPattern;
-		
-		// printf("1 %f\n", incidence);
-		// // printf("beamPattern %f\n", beamPattern.real());
-		// // printf("rms_scalaer %f\n", rms_scaler.real());
-		// printf("amp %f\n", amplitude.real());
-
-		// printf("1 %f\n", incidence);
-		// printf("r0 %f\n", ray_normal[0]);
-		// printf("r1 %f\n", ray_normal[1]);
-		// printf("r2 %f\n", ray_normal[2]);
-		// printf("t0 %f\n", target_normal[0]);
-		// printf("t1 %f\n", target_normal[1]);
-		// printf("t2 %f\n", target_normal[2]);
-		// printf("%f\n", dot_product);	
-		// asm("trap;");
-
 
 		// Summation of Echo returned from a signal (frequency domain)
 		for (size_t f = 0; f < nFreq; f++)  // frequency loop from fmin to fmax
@@ -223,10 +158,26 @@ __global__ void sonar_calculation(thrust::complex<float> *P_Beams,
 		}
 
 	}
-
 	// Stopper for debugging
 	// asm("trap;");
 }
+
+///////////////////////////////////////////////////////////////////////////
+// Scale by constant for FFT results
+class Scale_by_constant
+{
+    private:
+        float c_;
+    public:
+        Scale_by_constant(float c) { c_ = c; };
+        __host__ __device__ float2 operator()(float2 &a) const
+        {
+            float2 output;
+            output.x = a.x / c_;
+            output.y = a.y / c_;
+            return output;
+        }
+};
 
 ///////////////////////////////////////////////////////////////////////////
 namespace NpsGazeboSonar {
@@ -353,27 +304,57 @@ namespace NpsGazeboSonar {
 		//Copy back data from destination device meory to OpenCV output image
 		SAFE_CALL(cudaMemcpy(P_Beams,d_P_Beams,P_Beams_Bytes,cudaMemcpyDeviceToHost),"CUDA Memcpy Host To Device Failed");
 
-		// Assign values to Array for return
+		// Preallocate an array for return
 		CArray2D P_Beams_F(CArray(nFreq), nBeams);
+
+		// Initiate FFT variables
+		const int N = pow(2, ceil(log(nFreq)/log(2)));
+
+		printf("%d\n",nFreq);
+		printf("%d\n",nFreq);
+		printf("%d\n",N);
+		printf("%d\n",N);
+		printf("%d\n\n\n",N);
+
+		std::list<float2> vec;
+		thrust::device_vector<float2> d_vec;
+		cufftHandle plan;
+		cufftPlan1d(&plan, N, CUFFT_C2C, 1);
+		
+		// Beam Loop for FFT
 		for (size_t col = 0; col < nBeams; col ++)
 		{
+			// --- Allocate FFT Kernal
 			for (size_t f = 0; f < nFreq; f++)
-			{	
-				P_Beams_F[col][f] = Complex(P_Beams[col * nFreq + f].real(),
-									 		P_Beams[col * nFreq + f].imag());
+				vec.push_back(make_cuComplex(P_Beams[col * nFreq + f].real(),
+											  P_Beams[col * nFreq + f].imag()));
+			thrust::device_vector<float2> d_vec(vec.begin(), vec.end());
+	
+			// --- Perform in-place inverse Fourier transform
+			cufftExecC2C(plan, thrust::raw_pointer_cast(d_vec.data()),
+									thrust::raw_pointer_cast(d_vec.data()), 
+									CUFFT_INVERSE);
+		
+			thrust::transform(d_vec.begin(), d_vec.end(), d_vec.begin(), 
+							  Scale_by_constant((float)(N)));
+	
+			// --- Setting up output host vector    
+			thrust::host_vector<float2> h_vec(d_vec);
+
+			// --- Assign values to an array for return
+			for (size_t f = 0; f < nFreq; f++)
+			{
+				P_Beams_F[col][f] = Complex(h_vec[f].x, h_vec[f].y);
 			}
 		}
+
+		cufftDestroy(plan);
 
 		// Free GPU memory
 		cudaFree(d_depth_image);
 		cudaFree(d_normal_image);
-		cudaFree(d_P_Beams);
+		cudaFree(d_P_Beams);\
 
 		return P_Beams_F;
-
-
-		// FFT
-
-
 	}
 }

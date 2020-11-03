@@ -20,7 +20,7 @@ find_package(roscpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(OpenCV)
 
-find_package(CUDA  REQUIRED)
+find_package(CUDA REQUIRED)
 include_directories(${CUDA_INCLUDE_DIRS})
 
 include_directories(${roscpp_INCLUDE_DIRS})

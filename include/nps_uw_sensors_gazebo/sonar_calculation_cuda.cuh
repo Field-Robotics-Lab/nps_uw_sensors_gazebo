@@ -1,45 +1,8 @@
-// #ifndef __sonar_calculation_cuda_h__
-// #define __sonar_calculation_cuda_h__
-
-// #include <opencv2/core.hpp>
-// #include <complex>
-// #include <valarray>
-// #include <sstream>
-// #include <chrono>
-
-// typedef std::complex<double> Complex;
-// typedef std::valarray<Complex> CArray;
-// typedef std::valarray<CArray> CArray2D;
-  
-// class NpsGazeboSonar
-// {
-//     /// \brief Parameters for sonar properties
-//     // double sonarFreq;
-//     // double bandwidth;
-//     // double freqResolution;
-//     // double soundSpeed;
-//     // bool constMu;
-//     // double absorption;
-//     // double attenuation;
-//     // double mu; // surface reflectivity
-//     // double fmin;
-//     // double fmax;
-//     // double df;
-//     // int sonarCalcWidthSkips;
-//     // int sonarCalcHeightSkips;
-//     // int nBeams;
-//     // int ray_nAzimuthRays;
-//     // int ray_nElevationRays;
-
-//     public: 
-//         __global__ void CudaTest(float *out, float *a, float *b, int n);
-// };
-
-// #endif
-
 #pragma once
 #include <cuda.h>
 #include "cuda_runtime.h"
+#include "cuda_runtime_api.h"
+#include "device_launch_parameters.h"
 
 #include <stdio.h>
 #include <iostream>

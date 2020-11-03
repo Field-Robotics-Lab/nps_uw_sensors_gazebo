@@ -381,131 +381,13 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
   double hFOV = this->parentSensor->DepthCamera()->HFOV().Radian();
   double vPixelSize = vFOV / this->height;
   double hPixelSize = hFOV / this->width;
-  // In case if smaller number of azimuth beams and elevation rays are selected
 
+  // For calc time measure
+  auto start = std::chrono::high_resolution_clock::now();
   // ------------------------------------------------//
   // --------      Sonar calculations       -------- //
   // ------------------------------------------------//
-  // //////////////// For calc time measure
-  // auto start = std::chrono::high_resolution_clock::now();
-
-  // ----  Allocation of properties parameters  ---- //
-  double beam_elevationAngleWidth = hPixelSize;  // [radians]
-  double beam_azimuthAngleWidth = vPixelSize;    // [radians]
-  double ray_elevationAngleWidth = hPixelSize/(this->ray_nElevationRays-1);
-  double ray_azimuthAngleWidth = beam_azimuthAngleWidth;
-  double soundSpeed = this->soundSpeed;
-
-  // ---------   Calculation parameters   --------- //
-  double min_distance, max_distance;
-  cv::minMaxLoc(depth_image, &min_distance, &max_distance);  
-  // Sampling periods
-  double max_T = max_distance*2.0/soundSpeed;
-  double delta_f = 1.0/max_T;
-  const int nFreq = int(round((this->fmax - this->fmin) / delta_f));
-  double df = (this->fmax - this->fmin)/(nFreq-1); 
-  
-  // Pixcel loop
-  CArray2D P_Beams(CArray(nFreq), this->nBeams);
-
-  // Pixcel loop for beams
-  for (size_t col = 0; col < this->nBeams; col += this->sonarCalcWidthSkips)
-  {
-    double ray_azimuthAngle = -(hFOV/2.0) + col * hPixelSize + hPixelSize/2.0;
-
-    // Beam pattern (azimuth)
-    double azimuthBeamPattern = pow(abs(unnormalized_sinc(M_PI * 0.884
-                / ray_azimuthAngleWidth * sin(ray_azimuthAngle))), 2);
-    // Pixcel loop for rays
-    for (size_t row = 0; row < this->ray_nElevationRays; row += this->sonarCalcHeightSkips)   
-    {
-      // Input parameters for ray processing
-      double ray_elevationAngle = (vFOV/2.0) - row * vPixelSize - vPixelSize/2.0;
-      double distance = depth_image.at<float>(row, col)/2.0;
-      cv::Vec3f normal = normal_image.at<cv::Vec3f>(row, col);
-
-      // Beam pattern (elevation)
-      double elevationBeamPattern = pow(abs(unnormalized_sinc(M_PI * 0.884
-                 / ray_elevationAngleWidth * sin(ray_elevationAngle))), 2);
-      // incidence angle
-      double incidence = this->ComputeIncidence(ray_azimuthAngle, ray_elevationAngle, normal);
-
-      // ----- Point scattering model ------ //
-      // generate a random number, (Gaussian noise)
-      double xi_z = ((double) rand() / (RAND_MAX));  
-      double xi_y = ((double) rand() / (RAND_MAX));
-      // xi_z = 0.5;  // Constant rand value for debugging
-      // xi_y = 0.5;
-
-      Complex amplitude = ( ((xi_z + 1i * xi_y)/ sqrt(2.0))
-                            * (sqrt(this->mu * pow(cos(incidence), 2) * pow(distance, 2)
-                            * ray_azimuthAngleWidth * ray_elevationAngleWidth))
-                            * azimuthBeamPattern * elevationBeamPattern);
-
-      // Summation of Echo returned from a signal (frequency domain)
-      for (size_t f = 0; f < nFreq; f++)  // frequency loop from fmin to fmax
-      {
-        double freq = fmin + df*f;
-        double kw = 2.0*M_PI*freq/soundSpeed;   // wave vector
-        Complex K = kw + 1i*this->attenuation;  // attenuation constant K1f
-        Complex minusUnitImag = -1i;
-        Complex complexDistance = distance;
-        // Transmit spectrum, frequency domain
-        double S_f = 1e11 * exp(-pow(freq - sonarFreq, 2)
-                   * pow(M_PI, 2) / pow(this->bandwidth, 2));
-
-        P_Beams[col][f] = P_Beams[col][f] + S_f * amplitude
-                      * exp(minusUnitImag * K * complexDistance * 2.0) / pow(complexDistance, 2);
-      }
-    }  // end of Pixcel loop for rays
-  }  // end of Pixcel loop for beams
-
-  //////////////// For calc time measure
-  // auto stop = std::chrono::high_resolution_clock::now(); 
-  // auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start); 
-  // ROS_INFO_STREAM(duration.count()/1000000 << "s");
-  // start = std::chrono::high_resolution_clock::now();
-
-  // ################### IFFT NEEDS FIX ################## //
-  // power level based on echo time for each beam  
-  // for (size_t b = 0; b < this->nBeams; b += this->sonarCalcHeightSkips)
-  // {
-  //   // Allocate
-  //   const int SIZE = nFreq; //nextPowerOf2(nFreq);
-  //   double* in_real  = (double*)malloc(sizeof(double)*SIZE);
-  //   double* in_imag  = (double*)malloc(sizeof(double)*SIZE);
-  //   double* out_real = (double*)malloc(sizeof(double)*SIZE);
-  //   double* out_imag = (double*)malloc(sizeof(double)*SIZE);
-  //   for (uint64_t f = 0; f < SIZE; f++)
-  //   {
-  //     if (f >= nFreq)
-  //     {
-  //       in_real[f] = 0.0;  // Zero padding
-  //       in_imag[f] = 0.0;
-  //     }
-  //     else
-  //     {        
-  //       in_real[f] = P_Beams[b][f].real();
-  //       in_imag[f] = P_Beams[b][f].imag();
-  //     }
-  //   }
-  //   // IFFT
-  //   ifft(in_real, in_imag, SIZE, out_real, out_imag);
-  //   // Put back
-  //   for (size_t t = 0; t < nFreq; t++)
-  //   {
-  //     P_Beams[b][t] = std::complex<double>(out_real[t], out_imag[t]);
-  //   }
-  // }
-  // ################### IFFT NEEDS FIX ################## //
-
-  //////////////// For calc time measure
-  // stop = std::chrono::high_resolution_clock::now(); 
-  // duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  // ROS_INFO_STREAM(duration.count()/1000000 << "s");
-  // start = std::chrono::high_resolution_clock::now();
-
-  CArray2D P_Beams2 = NpsGazeboSonar::sonar_calculation_wrapper(
+  CArray2D P_Beams = NpsGazeboSonar::sonar_calculation_wrapper(
                   depth_image,   // cv::Mat& depth_image
 									normal_image,  // cv::Mat& normal_image
                   hPixelSize,    // hPixelSize
@@ -525,11 +407,10 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
                   this->mu,            // _mu
                   this->attenuation);  // _attenuation
 
-  //////////////// For calc time measure
-  // stop = std::chrono::high_resolution_clock::now(); 
-  // duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  // ROS_INFO_STREAM(duration.count()/1000000 << "s");
-  // start = std::chrono::high_resolution_clock::now();
+  // For calc time measure
+  auto stop = std::chrono::high_resolution_clock::now(); 
+  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+  ROS_INFO_STREAM(duration.count()/10000 << "/ 100 [s]");
 
   // CSV log write stream
   // Each columns corresponds to each beams
@@ -547,7 +428,7 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
       writeLog << "# Raw Sonar Data Log (Row: beams, colmns: time series data)\n";
       writeLog << "#  nBeams : " << floor(nBeams/sonarCalcWidthSkips) << "\n";
       writeLog << "# Simulation time : " << time << "\n";
-      for (size_t i = 0; i < nFreq; i++)
+      for (size_t i = 0; i < P_Beams[0].size(); i++)
       {
         // writeLog << sqrt(pow(P_Beams[0][i].real(),2) + pow(P_Beams[0][i].imag(),2));
         writeLog << P_Beams[0][i].real() << " + "  << P_Beams[0][i].imag() << "i";
@@ -561,40 +442,11 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
       }
       writeLog.close();
 
-      ////////////////      
-      std::stringstream filename2;
-      filename2 << "/tmp/SonarRawData2_" << std::setw(6) <<  std::setfill('0') 
-               << this->writeNumber << ".csv"; 
-      writeLog2.open(filename2.str().c_str(), std::ios_base::app);
-      filename2.clear();
-      writeLog2 << "# Raw Sonar Data Log (Row: beams, colmns: time series data)\n";
-      writeLog2 << "#  nBeams : " << floor(nBeams/sonarCalcWidthSkips) << "\n";
-      writeLog2 << "# Simulation time : " << time << "\n";
-      for (size_t i = 0; i < nFreq; i++)
-      {
-        // writeLog << sqrt(pow(P_Beams[0][i].real(),2) + pow(P_Beams[0][i].imag(),2));
-        writeLog2 << P_Beams2[0][i].real() << " + "  << P_Beams2[0][i].imag() << "i";
-        for (size_t b = 0; b < nBeams; b += this->sonarCalcWidthSkips)
-        { 
-          if (b != 0)
-            writeLog2 << "," << P_Beams2[b][i].real() << " + "<< P_Beams2[b][i].imag() << "i";
-            // writeLog << "," << sqrt(pow(P_Beams[b][i].real(),2) + pow(P_Beams[b][i].imag(),2));
-        }
-        writeLog2 << "\n";
-      }
-      writeLog2.close();
-      ////////////////
       this->writeNumber = this->writeNumber + 1;
     }
   }
   // ----- End of sonar calculation
-
-  //////////////// For calc time measure
-  // stop = std::chrono::high_resolution_clock::now(); 
-  // duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start); 
-  // ROS_INFO_STREAM(duration.count()/1000000 << "s");
-  // ROS_INFO_STREAM("");
-
+  
   // Still publishing the depth image (just because)
   this->depth_image_msg_.header.frame_id = this->frame_name_;
   this->depth_image_msg_.header.stamp.sec = this->depth_sensor_update_time_.sec;
