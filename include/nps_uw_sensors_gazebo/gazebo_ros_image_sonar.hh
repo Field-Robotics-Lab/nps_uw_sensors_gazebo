@@ -70,7 +70,6 @@
 #include <valarray>
 #include <sstream>
 #include <chrono>
-#include "fft.hpp"
 
 namespace gazebo
 {
