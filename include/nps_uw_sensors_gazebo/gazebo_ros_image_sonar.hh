@@ -133,6 +133,7 @@ namespace gazebo
 
     /// \brief CSV log writing stream for verifications
     protected: std::ofstream writeLog;
+    protected: std::ofstream writeLog2;
     protected: u_int64_t writeCounter;
     protected: u_int64_t writeNumber;
     protected: u_int64_t writeInterval;
