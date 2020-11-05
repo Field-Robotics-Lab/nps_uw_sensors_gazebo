@@ -61,10 +61,10 @@
           <freqResolution>100e2</freqResolution>
           <soundSpeed>1500</soundSpeed>
           <constantReflectivity>true</constantReflectivity>
+          <beamSkips>0</beamSkips>
+          <raySkips>2</raySkips>
           <writeLog>true</writeLog>
-          <sonarCalcWidthSkips>80</sonarCalcWidthSkips>   <!-- max defined at <camera>-->
-          <sonarCalcHeightSkips>25</sonarCalcHeightSkips> <!-- max defined at <camera>-->
-          <writeFrameInterval>20</writeFrameInterval>
+          <writeFrameInterval>5</writeFrameInterval>
           <!-- This name is prepended to ROS topics -->
           <cameraName>blueview_p900</cameraName>
           <!-- ROS publication topics --> 

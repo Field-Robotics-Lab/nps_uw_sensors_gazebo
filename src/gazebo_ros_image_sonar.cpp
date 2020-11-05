@@ -33,6 +33,8 @@
 
 #include <algorithm>
 #include <assert.h>
+#include <string>
+#include <sys/stat.h>
 #include <boost/thread/thread.hpp>
 #include <boost/bind.hpp>
 
@@ -191,16 +193,19 @@ void NpsGazeboRosImageSonar::Load(sensors::SensorPtr _parent,
   else
     this->constMu =
       _sdf->GetElement("constantReflectivity")->Get<bool>();
-  if (!_sdf->HasElement("sonarCalcWidthSkips"))
-    this->sonarCalcWidthSkips = 1;
+  if (!_sdf->HasElement("beamSkips"))
+    this->beamSkips = 0;
   else
-    this->sonarCalcWidthSkips =
-      _sdf->GetElement("sonarCalcWidthSkips")->Get<int>();
-  if (!_sdf->HasElement("sonarCalcHeightSkips"))
-    this->sonarCalcHeightSkips = 1;
+    this->beamSkips =
+      _sdf->GetElement("beamSkips")->Get<int>();
+  if (!_sdf->HasElement("raySkips"))
+    this->raySkips = 0;
   else
-    this->sonarCalcHeightSkips =
-      _sdf->GetElement("sonarCalcHeightSkips")->Get<int>();
+    this->raySkips =
+      _sdf->GetElement("raySkips")->Get<int>();
+  // Configure skips
+  if (this->beamSkips == 0) this->beamSkips = 1;
+  if (this->raySkips == 0) this->raySkips = 1;
 
   // Calculate common sonar parameters
   this->fmin = this->sonarFreq - this->bandwidth/2.0*4.0;
@@ -219,6 +224,7 @@ void NpsGazeboRosImageSonar::Load(sensors::SensorPtr _parent,
   // Each beam consists of (elevation,azimuth)=(this->height,1) rays
   // Beam patterns
   this->nBeams = this->width;
+  this->nRays = this->height;
   this->ray_nElevationRays = this->height;
   this->ray_nAzimuthRays = 1;
 
@@ -231,7 +237,7 @@ void NpsGazeboRosImageSonar::Load(sensors::SensorPtr _parent,
   ROS_INFO_STREAM("# of Rays/Beam (Elevation, Azimuth) = ("
       << ray_nElevationRays << ", " << ray_nAzimuthRays << ")");
   ROS_INFO_STREAM("Calculation skips (Elevation, Azimuth) = (" 
-      << this->sonarCalcHeightSkips << ", " << this->sonarCalcWidthSkips << ")");
+      << this->raySkips << ", " << this->beamSkips << ")");
   ROS_INFO_STREAM("==================================================");
   ROS_INFO_STREAM("");
 
@@ -244,9 +250,13 @@ void NpsGazeboRosImageSonar::Load(sensors::SensorPtr _parent,
     else
       this->writeInterval = 10;
     ROS_INFO_STREAM("Raw data at " << "/tmp/SonarRawData_{numbers}.csv");
-    ROS_INFO_STREAM("every " << this->writeInterval << " frames"
-                    << "for " << floor(nBeams/sonarCalcWidthSkips) << " beams");
-    system("rm /tmp/SonarRawData*.csv");
+    ROS_INFO_STREAM("every " << this->writeInterval << " frames");
+    ROS_INFO_STREAM("");
+
+    struct stat buffer;
+    std::string logfilename("/tmp/SonarRawData_000001.csv");
+    if (stat (logfilename.c_str(), &buffer) == 0)
+      system("rm /tmp/SonarRawData*.csv");
   }
 
   load_connection_ = 
@@ -387,6 +397,10 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
   // ------------------------------------------------//
   // --------      Sonar calculations       -------- //
   // ------------------------------------------------//
+
+  // ------------------------------ //
+  // ------------- GPU ------------ //
+  // ------------------------------ //
   CArray2D P_Beams = NpsGazeboSonar::sonar_calculation_wrapper(
                   depth_image,   // cv::Mat& depth_image
 									normal_image,  // cv::Mat& normal_image
@@ -396,28 +410,113 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
                   vFOV,          // VFOV
 									hPixelSize,    // _beam_elevationAngleWidth
 									vPixelSize,    // _beam_azimuthAngleWidth
-									hPixelSize/(this->ray_nElevationRays-1),  // _ray_elevationAngleWidth
+									hPixelSize/(this->nRays-1),  // _ray_elevationAngleWidth
 									vPixelSize,    // _ray_azimuthAngleWidth
 									this->soundSpeed,    // _soundSpeed
 									this->nBeams,        // _nBeams
+									this->nRays,         // _nRays
+									this->beamSkips,     // _beamSkips
+									this->raySkips,      // _raySkips
 									this->sonarFreq,     // _sonarFreq
 								  this->fmax,          // _fmax
                   this->fmin,          // _fmin
                   this->bandwidth,     // _bandwidth
                   this->mu,            // _mu
                   this->attenuation);  // _attenuation
-
+  
   // For calc time measure
   auto stop = std::chrono::high_resolution_clock::now(); 
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  ROS_INFO_STREAM(duration.count()/10000 << "/ 100 [s]");
+  ROS_INFO_STREAM("GPU Sonar Frame Calc Time " << duration.count()/10000 << "/100 [s]\n");
+  start = std::chrono::high_resolution_clock::now(); 
 
+  // ------------------------------ //
+  // ------------- CPU ------------ //
+  // ------------------------------ //
+  // ----  Allocation of properties parameters  ---- //
+  int sonarCalcWidthSkips = 50;
+  int sonarCalcHeightSkips = 2;
+  double beam_elevationAngleWidth = hPixelSize;  // [radians]
+  double beam_azimuthAngleWidth = vPixelSize;    // [radians]
+  double ray_elevationAngleWidth = 
+            hPixelSize/(this->ray_nElevationRays-1)*raySkips;
+  double ray_azimuthAngleWidth = vPixelSize*beamSkips;
+  double soundSpeed = this->soundSpeed;
+
+  // ---------   Calculation parameters   --------- //
+  double min_distance, max_distance;
+  cv::minMaxLoc(depth_image, &min_distance, &max_distance);  
+  // Sampling periods
+  double max_T = max_distance*2.0/soundSpeed;
+  double delta_f = 1.0/max_T;
+  const int nFreq = int(round((this->fmax - this->fmin) / delta_f));
+  double df = (this->fmax - this->fmin)/(nFreq-1);
+  
+  // Pixel loop
+  CArray2D P_Beams2(CArray(nFreq), this->nBeams);
+  // Pixel loop for beams
+  for (size_t beam = 0; beam < this->nBeams; beam += sonarCalcWidthSkips)
+  {
+    double ray_azimuthAngle = -(hFOV/2.0) + beam * hPixelSize + hPixelSize/2.0;
+
+    // Beam pattern (azimuth)
+    double azimuthBeamPattern = pow(abs(unnormalized_sinc(M_PI * 0.884
+                / ray_azimuthAngleWidth * sin(ray_azimuthAngle))), 2);
+    // Pixel loop for rays
+    for (size_t ray = 0; ray < this->ray_nElevationRays; ray += sonarCalcHeightSkips)   
+    {
+      // Input parameters for ray processing
+      double ray_elevationAngle = (vFOV/2.0) - ray * vPixelSize - vPixelSize/2.0;
+      double distance = depth_image.at<float>(ray, beam)/2.0;
+      cv::Vec3f normal = normal_image.at<cv::Vec3f>(ray, beam);
+
+      // Beam pattern (elevation)
+      double elevationBeamPattern = pow(abs(unnormalized_sinc(M_PI * 0.884
+                 / ray_elevationAngleWidth * sin(ray_elevationAngle))), 2);
+      // incidence angle
+      double incidence = this->ComputeIncidence(ray_azimuthAngle, ray_elevationAngle, normal);
+
+      // ----- Point scattering model ------ //
+      // generate a random number, (Gaussian noise)
+      double xi_z = ((double) rand() / (RAND_MAX)) + 1;
+      double xi_y = ((double) rand() / (RAND_MAX)) + 1;
+
+      Complex randnumber = Complex(xi_z, xi_y);
+      Complex amplitude = ( (randnumber/ sqrt(2.0))
+                            * (sqrt(this->mu * pow(cos(incidence), 2) * pow(distance, 2)
+                            * ray_azimuthAngleWidth * ray_elevationAngleWidth))
+                            * azimuthBeamPattern * elevationBeamPattern);
+
+      // Summation of Echo returned from a signal (frequency domain)
+      for (size_t f = 0; f < nFreq; f++)  // frequency loop from fmin to fmax
+      {
+        double freq = fmin + df*f;
+        double kw = 2.0*M_PI*freq/soundSpeed;   // wave vector
+        Complex K = Complex(kw, this->attenuation);  // attenuation constant K1f
+        Complex minusUnitImag = Complex(0.0,-1.0);
+        Complex complexDistance = Complex(distance, 0.0);
+        // Transmit spectrum, frequency domain
+        Complex S_f = Complex(1e11 * exp(-pow(freq - sonarFreq, 2)
+                   * pow(M_PI, 2) / pow(this->bandwidth, 2)), 0.0);
+
+        P_Beams2[beam][f] = P_Beams2[beam][f] + S_f * amplitude
+                      * exp(minusUnitImag * K * complexDistance * 2.0) / pow(complexDistance, 2);
+      }
+    }  // end of Pixel loop for rays
+  }  // end of Pixel loop for beams
+  
+  // For calc time measure
+  stop = std::chrono::high_resolution_clock::now(); 
+  duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+  ROS_INFO_STREAM("CPU Sonar Frame Calc Time " << duration.count()/10000 << "/100 [s]\n");
+  start = std::chrono::high_resolution_clock::now(); 
+  
   // CSV log write stream
-  // Each columns corresponds to each beams
+  // Each cols corresponds to each beams
   if (this->writeLogFlag)
   { 
     this->writeCounter = this->writeCounter + 1;
-    if (this->writeCounter % this->writeInterval == 0)
+    if (this->writeCounter == 1 || this->writeCounter % this->writeInterval == 0)
     {
       double time = this->parentSensor_->LastMeasurementTime().Double();
       std::stringstream filename;
@@ -425,23 +524,69 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
                << this->writeNumber << ".csv"; 
       writeLog.open(filename.str().c_str(), std::ios_base::app);
       filename.clear();
-      writeLog << "# Raw Sonar Data Log (Row: beams, colmns: time series data)\n";
-      writeLog << "#  nBeams : " << floor(nBeams/sonarCalcWidthSkips) << "\n";
+      writeLog << "# Raw Sonar Data Log (Row: beams, Col: time series data)\n";
+      writeLog << "#  nBeams : " << nBeams << "\n";
       writeLog << "# Simulation time : " << time << "\n";
       for (size_t i = 0; i < P_Beams[0].size(); i++)
       {
-        // writeLog << sqrt(pow(P_Beams[0][i].real(),2) + pow(P_Beams[0][i].imag(),2));
-        writeLog << P_Beams[0][i].real() << " + "  << P_Beams[0][i].imag() << "i";
-        for (size_t b = 0; b < nBeams; b += this->sonarCalcWidthSkips)
-        { 
+        if (P_Beams[0][i].imag() > 0)
+          writeLog << P_Beams[0][i].real() << "+"  << P_Beams[0][i].imag() << "i";
+        else
+          writeLog << P_Beams[0][i].real() << P_Beams[0][i].imag() << "i";
+          
+        for (size_t b = 0; b < nBeams; b += beamSkips)
+        {
           if (b != 0)
-            writeLog << "," << P_Beams[b][i].real() << " + "<< P_Beams[b][i].imag() << "i";
-            // writeLog << "," << sqrt(pow(P_Beams[b][i].real(),2) + pow(P_Beams[b][i].imag(),2));
+          {
+            if (P_Beams[b][i].imag() > 0)
+              writeLog << "," << P_Beams[b][i].real() << "+" << P_Beams[b][i].imag() << "i";
+            else
+              writeLog << "," << P_Beams[b][i].real() << P_Beams[b][i].imag() << "i";
+          }
         }
         writeLog << "\n";
       }
       writeLog.close();
 
+      // For calc time measure
+      stop = std::chrono::high_resolution_clock::now(); 
+      duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+      ROS_INFO_STREAM("Sonar DATA Write Time " << duration.count()/10000 << "/100 [s]\n");
+      start = std::chrono::high_resolution_clock::now(); 
+
+      std::stringstream filename2;
+      filename2 << "/tmp/SonarRawData2_" << std::setw(6) <<  std::setfill('0') 
+               << this->writeNumber << ".csv"; 
+      writeLog.open(filename2.str().c_str(), std::ios_base::app);
+      filename2.clear();
+      writeLog << "# Raw Sonar Data Log (Row: beams, Col: time series data)\n";
+      writeLog << "#  nBeams : " << nBeams << "\n";
+      writeLog << "# Simulation time : " << time << "\n";
+      for (size_t i = 0; i < P_Beams2[0].size(); i++)
+      {
+        if (P_Beams2[0][i].imag() > 0)
+          writeLog << P_Beams2[0][i].real() << "+" << P_Beams2[0][i].imag() << "i";
+        else
+          writeLog << P_Beams2[0][i].real() << P_Beams2[0][i].imag() << "i";
+          
+        for (size_t b = 0; b < nBeams; b ++)
+        {
+          if (b != 0)
+          {
+            if (P_Beams2[b][i].imag() > 0)
+              writeLog << "," << P_Beams2[b][i].real() << "+" << P_Beams2[b][i].imag() << "i";
+            else
+              writeLog << "," << P_Beams2[b][i].real() << P_Beams2[b][i].imag() << "i";
+          }
+        }
+        writeLog << "\n";
+      }
+      writeLog.close();
+            // For calc time measure
+      stop = std::chrono::high_resolution_clock::now(); 
+      duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+      ROS_INFO_STREAM("Sonar DATA Write Time " << duration.count()/10000 << "/100 [s]\n");
+      
       this->writeNumber = this->writeNumber + 1;
     }
   }

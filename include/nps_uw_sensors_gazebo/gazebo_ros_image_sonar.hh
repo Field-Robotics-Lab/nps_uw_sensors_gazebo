@@ -124,9 +124,10 @@ namespace gazebo
     private: double fmin;
     private: double fmax;
     private: double df;
-    private: int sonarCalcWidthSkips;
-    private: int sonarCalcHeightSkips;
     private: int nBeams;
+    private: int nRays;
+    private: int beamSkips;
+    private: int raySkips;
     private: int ray_nAzimuthRays;
     private: int ray_nElevationRays;
 
@@ -180,5 +181,16 @@ namespace gazebo
     private: event::ConnectionPtr newImageFrameConnection;
   };
 
+  ///////////////////////////////////////////
+  inline double unnormalized_sinc(double t)
+  {
+    try
+    {
+      return sin(t)/t;
+    }catch(int expn)
+    {
+      return 1.0;
+    }
+  }
 }
 #endif

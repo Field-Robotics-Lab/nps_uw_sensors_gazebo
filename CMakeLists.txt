@@ -45,7 +45,8 @@ set_target_properties(nps_image_sonar_ros_plugin
                       PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 target_link_libraries(nps_image_sonar_ros_plugin
                       ${OGRE_LIBRARIES} ${catkin_LIBRARIES}
-                      ${GAZEBO_LIBRARIES})
+                      ${CUDA_LIBRARIES}
+                      ${CUDA_CUFFT_LIBRARIES})
 add_dependencies(nps_image_sonar_ros_plugin ${catkin_EXPORTED_TARGETS})
 list(APPEND SENSOR_ROS_PLUGINS_LIST nps_image_sonar_ros_plugin)
 
