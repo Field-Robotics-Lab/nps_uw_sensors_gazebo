@@ -62,15 +62,17 @@
 #include <gazebo/sensors/SensorTypes.hh>
 #include <gazebo/plugins/DepthCameraPlugin.hh>
 
-// boost stuff
-#include <boost/thread/mutex.hpp>
-
-#include <opencv2/core.hpp>
 #include <complex>
 #include <valarray>
 #include <sstream>
 #include <chrono>
 #include <string>
+
+// boost stuff
+#include <boost/thread/mutex.hpp>
+
+#include <opencv2/core.hpp>
+
 
 namespace gazebo
 {

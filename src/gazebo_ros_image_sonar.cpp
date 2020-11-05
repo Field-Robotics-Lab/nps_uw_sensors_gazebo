@@ -33,6 +33,8 @@
 
 #include <nps_uw_sensors_gazebo/gazebo_ros_image_sonar.hh>
 
+#include <nps_uw_sensors_gazebo/sonar_calculation_cuda.cuh>
+
 #include <assert.h>
 #include <sys/stat.h>
 #include <tf/tf.h>
@@ -46,8 +48,6 @@
 #include <opencv2/core/core.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/bind.hpp>
-
-#include <nps_uw_sensors_gazebo/sonar_calculation_cuda.cuh>
 
 #include <algorithm>
 #include <string>
@@ -413,7 +413,7 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
   CArray2D P_Beams =
     NpsGazeboSonar::sonar_calculation_wrapper(
       depth_image,   // cv::Mat& depth_image
-		  normal_image,  // cv::Mat& normal_image
+      normal_image,  // cv::Mat& normal_image
       PixelSize,    // hPixelSize
       vPixelSize,    // vPixelSize
       hFOV,          // hFOV
@@ -549,7 +549,8 @@ cv::Mat NpsGazeboRosImageSonar::ComputeNormalImage(cv::Mat& depth)
 
   cv::Mat no_readings;
   cv::erode(depth == 0, no_readings, cv::Mat(), cv::Point(-1, -1), 2, 1, 1);
-  // cv::dilate(no_readings, no_readings, cv::Mat(), cv::Point(-1, -1), 2, 1, 1);
+  // cv::dilate(no_readings, no_readings,
+  //             cv::Mat(), cv::Point(-1, -1), 2, 1, 1);
   n1.setTo(0, no_readings);
   n2.setTo(0, no_readings);
 
