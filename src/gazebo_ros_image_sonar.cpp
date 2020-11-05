@@ -36,10 +36,6 @@
 #include <tf/tf.h>
 #include <sensor_msgs/image_encodings.h>
 #include <cv_bridge/cv_bridge.h>
-#include <algorithm>
-#include <string>
-#include <boost/thread/thread.hpp>
-#include <boost/bind.hpp>
 
 #include <nps_uw_sensors_gazebo/gazebo_ros_image_sonar.hh>
 #include <gazebo/sensors/Sensor.hh>
@@ -47,8 +43,13 @@
 #include <gazebo/sensors/SensorTypes.hh>
 
 #include <opencv2/core/core.hpp>
+#include <boost/thread/thread.hpp>
+#include <boost/bind.hpp>
 
 #include <nps_uw_sensors_gazebo/sonar_calculation_cuda.cuh>
+
+#include <algorithm>
+#include <string>
 
 namespace gazebo
 {
@@ -121,10 +122,11 @@ void NpsGazeboRosImageSonar::Load(sensors::SensorPtr _parent,
   // Make sure the ROS node for Gazebo has already been initialized
   if (!ros::isInitialized())
   {
-    ROS_FATAL_STREAM_NAMED("depth_camera", "A ROS node for Gazebo
-                has not been initialized, unable to load plugin. "
-        << "Load the Gazebo system plugin 'libgazebo_ros_api_plugin.so'
-                in the gazebo_ros package)");
+    ROS_FATAL_STREAM_NAMED("depth_camera",
+        "A ROS node for Gazebohas not been initialized,"
+        << "unable to load plugin. "
+        << "Load the Gazebo system plugin 'libgazebo_ros_api_plugin.so'"
+        << "in the gazebo_ros package)");
     return;
   }
 
@@ -348,7 +350,8 @@ void NpsGazeboRosImageSonar::OnNewDepthFrame(const float *_image,
     // Won't this just toggle on and off unnecessarily?
     // TODO: Find a better way to make sure it runs once after activation
     if (this->depth_image_connect_count_ <= 0)
-      // do this first so there's chance for sensor to run 1 frame after activate
+      // do this first so there's chance f
+      // for sensor to run 1 frame after activate
       this->parentSensor->SetActive(true);
   }
 }
@@ -387,7 +390,8 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
   this->lock_.lock();
 
   // Use OpenCV to compute a normal image from the depth image
-  cv::Mat depth_image(this->height, this->width, CV_32FC1, (float*)_src);
+  cv::Mat depth_image(
+    this->height, this->width, CV_32FC1, reinterpret_cast<float*>(_src));
   cv::Mat normal_image = this->ComputeNormalImage(depth_image);
   double vFOV = this->parentSensor->DepthCamera()->VFOV().Radian();
   double hFOV = this->parentSensor->DepthCamera()->HFOV().Radian();
@@ -403,7 +407,8 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
   // ------------------------------ //
   // ------------- GPU ------------ //
   // ------------------------------ //
-  CArray2D P_Beams = NpsGazeboSonar::sonar_calculation_wrapper(
+  CArray2D P_Beams =
+    NpsGazeboSonar::sonar_calculation_wrapper(
                   depth_image,   // cv::Mat& depth_image
 									normal_image,  // cv::Mat& normal_image
                   hPixelSize,    // hPixelSize
