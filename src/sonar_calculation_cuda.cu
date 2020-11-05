@@ -202,7 +202,7 @@ namespace NpsGazeboSonar {
 									double _mu,
 									double _attenuation)
 	{
-		auto start = std::chrono::high_resolution_clock::now();
+		// auto start = std::chrono::high_resolution_clock::now();
 
 		// ----  Allocation of properties parameters  ---- //
 		float hPixelSize = (float) _hPixelSize;
@@ -307,11 +307,11 @@ namespace NpsGazeboSonar {
 		cudaFree(d_normal_image);
 		cudaFree(d_P_Beams);
 
-		// For calc time measure
-		auto stop = std::chrono::high_resolution_clock::now();
-		auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-		printf("GPU Sonar Calc Time %lld/100 [s]\n",static_cast<long long int>(duration.count()/10000));
-		start = std::chrono::high_resolution_clock::now();
+		// // For calc time measure
+		// auto stop = std::chrono::high_resolution_clock::now();
+		// auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+		// printf("GPU Sonar Calc Time %lld/100 [s]\n",static_cast<long long int>(duration.count()/10000));
+		// start = std::chrono::high_resolution_clock::now();
 
 		// Preallocate an array for return
 		CArray2D P_Beams_F(CArray(nFreq), nBeams);
@@ -333,10 +333,10 @@ namespace NpsGazeboSonar {
 		}
 
 		// For calc time measure
-		stop = std::chrono::high_resolution_clock::now();
-		duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-		printf("GPU Sonar Summation %lld/100 [s]\n",static_cast<long long int>(duration.count()/10000));
-		start = std::chrono::high_resolution_clock::now();
+		// stop = std::chrono::high_resolution_clock::now();
+		// duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+		// printf("GPU Sonar Summation %lld/100 [s]\n",static_cast<long long int>(duration.count()/10000));
+		// start = std::chrono::high_resolution_clock::now();
 
 		// ========== FFT ======== //
 		const int DATASIZE = pow(2, ceil(log(nFreq)/log(2)));
@@ -398,9 +398,9 @@ namespace NpsGazeboSonar {
 		}
 
 		// For calc time measure
-		stop = std::chrono::high_resolution_clock::now();
-		duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-		printf("GPU FFT Calc Time %lld/100 [s]\n",static_cast<long long int>(duration.count()/10000));
+		// stop = std::chrono::high_resolution_clock::now();
+		// duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+		// printf("GPU FFT Calc Time %lld/100 [s]\n",static_cast<long long int>(duration.count()/10000));
 
 		return P_Beams_F;
 	}
