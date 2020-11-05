@@ -15,8 +15,8 @@
 // For FFT
 #include <cufft.h>
 #include <cufftw.h>
-#include <list>
 #include <thrust/device_vector.h>
+#include <list>
 
 #include <chrono>
 
@@ -104,7 +104,8 @@ __global__ void sonar_calculation(thrust::complex<float> *P_Beams,
 	const int ray = blockIdx.y * blockDim.y + threadIdx.y;
 
 	//Only valid threads perform memory I/O
-	if((beam<width) && (ray<height) && (beam % beamSkips == 0) && (ray % raySkips == 0))
+	if((beam<width) && (ray<height) &&
+			 (beam % beamSkips == 0) && (ray % raySkips == 0))
 	{
 		// Location of the image pixel
 		const int depth_index = ray * depth_image_step/sizeof(float) + beam;
@@ -129,7 +130,8 @@ __global__ void sonar_calculation(thrust::complex<float> *P_Beams,
 
 		// ----- Point scattering model ------ //
 		// generate a random number, (Gaussian noise)
-		// TODO : it's acting like a fixed value in a frame. I should be random within a frame
+		// TODO : it's acting like a fixed value in a frame.
+		//        I should be random within a frame
 		float xi_z = rand_image[rand_index] * 0.003921569f;
 		float xi_y = rand_image[rand_index + 1] * 0.003921569f;
 		// // Calculate amplitude
@@ -209,8 +211,8 @@ namespace NpsGazeboSonar {
 		float vPixelSize = (float) _vPixelSize;
 		float hFOV = (float) _hFOV;
 		float vFOV = (float) _vFOV;
-		float beam_elevationAngleWidth = (float) _beam_elevationAngleWidth;  // [radians]
-		float beam_azimuthAngleWidth = (float) _beam_azimuthAngleWidth;      // [radians]
+		float beam_elevationAngleWidth = (float) _beam_elevationAngleWidth;
+		float beam_azimuthAngleWidth = (float) _beam_azimuthAngleWidth;
 		float ray_elevationAngleWidth = (float) _ray_elevationAngleWidth;
 		float ray_azimuthAngleWidth = (float) _ray_azimuthAngleWidth;
 		float soundSpeed = (float) _soundSpeed;
@@ -247,20 +249,29 @@ namespace NpsGazeboSonar {
 		unsigned char *d_rand_image;
 
 		//Allocate device memory
-		SAFE_CALL(cudaMalloc<float>(&d_depth_image,depth_image_Bytes),"CUDA Malloc Failed");
-		SAFE_CALL(cudaMalloc<float>(&d_normal_image,normal_image_Bytes),"CUDA Malloc Failed");
-		SAFE_CALL(cudaMalloc<unsigned char>(&d_rand_image,rand_image_Bytes),"CUDA Malloc Failed");
+		SAFE_CALL(cudaMalloc<float>(&d_depth_image,depth_image_Bytes),
+									"CUDA Malloc Failed");
+		SAFE_CALL(cudaMalloc<float>(&d_normal_image,normal_image_Bytes),
+									"CUDA Malloc Failed");
+		SAFE_CALL(cudaMalloc<unsigned char>(&d_rand_image,rand_image_Bytes),
+									"CUDA Malloc Failed");
 
 		//Copy data from OpenCV input image to device memory
-		SAFE_CALL(cudaMemcpy(d_depth_image,depth_image.ptr(),depth_image_Bytes,cudaMemcpyHostToDevice),"CUDA Memcpy Host To Device Failed");
-		SAFE_CALL(cudaMemcpy(d_normal_image,normal_image.ptr(),normal_image_Bytes,cudaMemcpyHostToDevice),"CUDA Memcpy Host To Device Failed");
-		SAFE_CALL(cudaMemcpy(d_rand_image,rand_image.ptr(),rand_image_Bytes,cudaMemcpyHostToDevice),"CUDA Memcpy Host To Device Failed");
+		SAFE_CALL(cudaMemcpy(
+			d_depth_image,depth_image.ptr(),depth_image_Bytes,
+			cudaMemcpyHostToDevice),"CUDA Memcpy Host To Device Failed");
+		SAFE_CALL(cudaMemcpy(
+			d_normal_image,normal_image.ptr(),normal_image_Bytes,
+			cudaMemcpyHostToDevice),"CUDA Memcpy Host To Device Failed");
+		SAFE_CALL(cudaMemcpy(
+			d_rand_image,rand_image.ptr(),rand_image_Bytes,
+			cudaMemcpyHostToDevice),"CUDA Memcpy Host To Device Failed");
 
 		//Specify a reasonable block size
 		const dim3 block(16, 16);
 
 		// //Calculate grid size to cover the whole image
-		const dim3 grid((depth_image.cols + block.x - 1)/block.x, 
+		const dim3 grid((depth_image.cols + block.x - 1)/block.x,
 						(depth_image.rows + block.y - 1)/block.y);
 
 		// Pixcel array
@@ -269,7 +280,8 @@ namespace NpsGazeboSonar {
 		const int P_Beams_N = (int)(nBeams/beamSkips) * (int)(nRays/raySkips) * nFreq;
 		const int P_Beams_Bytes = sizeof(thrust::complex<float>) * P_Beams_N;
 		P_Beams = (thrust::complex<float>*)malloc(P_Beams_Bytes);
-		SAFE_CALL(cudaMalloc<thrust::complex<float>>(&d_P_Beams,P_Beams_Bytes),"CUDA Malloc Failed");
+		SAFE_CALL(cudaMalloc<thrust::complex<float>>(&d_P_Beams,P_Beams_Bytes),
+									"CUDA Malloc Failed");
 
 		//Launch the beamor conversion kernel
 		sonar_calculation<<<grid,block>>>(d_P_Beams,
@@ -300,7 +312,8 @@ namespace NpsGazeboSonar {
 		SAFE_CALL(cudaDeviceSynchronize(),"Kernel Launch Failed");
 
 		//Copy back data from destination device meory to OpenCV output image
-		SAFE_CALL(cudaMemcpy(P_Beams,d_P_Beams,P_Beams_Bytes,cudaMemcpyDeviceToHost),"CUDA Memcpy Host To Device Failed");
+		SAFE_CALL(cudaMemcpy(P_Beams,d_P_Beams,P_Beams_Bytes,
+			cudaMemcpyDeviceToHost),"CUDA Memcpy Host To Device Failed");
 
 		// Free GPU memory
 		cudaFree(d_depth_image);
@@ -325,8 +338,10 @@ namespace NpsGazeboSonar {
 				float P_Beam_imag = 0.0;
 				for (size_t ray = 0; ray < nRays; ray += raySkips)
 				{
-					P_Beam_real += P_Beams[beam * nFreq * (int)(nRays/raySkips) + ray/raySkips * nFreq + f].real();
-					P_Beam_imag += P_Beams[beam * nFreq * (int)(nRays/raySkips) + ray/raySkips * nFreq + f].imag();
+					P_Beam_real += P_Beams[beam * nFreq * (int)(nRays/raySkips)
+											+ ray/raySkips * nFreq + f].real();
+					P_Beam_imag += P_Beams[beam * nFreq * (int)(nRays/raySkips)
+											+ ray/raySkips * nFreq + f].imag();
 				}
 				P_Beams_F[beam][f] = Complex(P_Beam_real, P_Beam_imag);
 			}
@@ -334,47 +349,61 @@ namespace NpsGazeboSonar {
 
 		// For calc time measure
 		// stop = std::chrono::high_resolution_clock::now();
-		// duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-		// printf("GPU Sonar Summation %lld/100 [s]\n",static_cast<long long int>(duration.count()/10000));
+		// duration = std::chrono::duration_cast
+		// 		<std::chrono::microseconds>(stop - start);
+		// printf("GPU Sonar Summation %lld/100 [s]\n",
+		// 		static_cast<long long int>(duration.count()/10000));
 		// start = std::chrono::high_resolution_clock::now();
 
 		// ========== FFT ======== //
 		const int DATASIZE = pow(2, ceil(log(nFreq)/log(2)));
 		const int BATCH = nBeams;
 		// --- Host side input data allocation and initialization
-		cufftComplex *hostInputData = (cufftComplex*)malloc(DATASIZE*BATCH*sizeof(cufftComplex));
+		cufftComplex *hostInputData = (cufftComplex*)malloc(
+								DATASIZE*BATCH*sizeof(cufftComplex));
 		for (int beam = 0; beam < BATCH; beam++)
 		{
 			for (int f = 0; f < DATASIZE; f++)
 			{
 				if (f < nFreq)
-					hostInputData[beam*DATASIZE + f] = make_cuComplex(P_Beams_F[beam][f].real(),
-																	  P_Beams_F[beam][f].imag());
+					hostInputData[beam*DATASIZE + f] =
+							make_cuComplex(P_Beams_F[beam][f].real(),
+										   P_Beams_F[beam][f].imag());
 				else
-					hostInputData[beam*DATASIZE + f] = (make_cuComplex(0.f, 0.f));  // zero padding
+					hostInputData[beam*DATASIZE + f] =
+							(make_cuComplex(0.f, 0.f));  // zero padding
 			}
 		}
 
 		// --- Device side input data allocation and initialization
 		cufftComplex *deviceInputData;
-		SAFE_CALL(cudaMalloc((void**)&deviceInputData, DATASIZE * BATCH * sizeof(cufftComplex)), "FFT CUDA Malloc Failed");
-		SAFE_CALL(cudaMemcpy(deviceInputData, hostInputData, DATASIZE * BATCH * sizeof(cufftComplex), cudaMemcpyHostToDevice), "FFT CUDA Memcopy Failed");
+		SAFE_CALL(cudaMalloc((void**)&deviceInputData,
+							DATASIZE * BATCH * sizeof(cufftComplex)),
+							"FFT CUDA Malloc Failed");
+		SAFE_CALL(cudaMemcpy(deviceInputData, hostInputData,
+							DATASIZE * BATCH * sizeof(cufftComplex),
+							cudaMemcpyHostToDevice), "FFT CUDA Memcopy Failed");
 
 		// --- Host side output data allocation
-		cufftComplex *hostOutputData = (cufftComplex*)malloc(DATASIZE* BATCH * sizeof(cufftComplex));
+		cufftComplex *hostOutputData =
+				(cufftComplex*)malloc(DATASIZE* BATCH * sizeof(cufftComplex));
 
 		// --- Device side output data allocation
-		cufftComplex *deviceOutputData; cudaMalloc((void**)&deviceOutputData, DATASIZE * BATCH * sizeof(cufftComplex));
+		cufftComplex *deviceOutputData;
+		cudaMalloc((void**)&deviceOutputData,
+				DATASIZE * BATCH * sizeof(cufftComplex));
 
 		// --- Batched 1D FFTs
 		cufftHandle handle;
-		int rank = 1;                           // --- 1D FFTs
-		int n[] = { DATASIZE };                 // --- Size of the Fourier transform
-		int istride = 1, ostride = 1;           // --- Distance between two successive input/output elements
+		int rank = 1;            // --- 1D FFTs
+		int n[] = { DATASIZE };  // --- Size of the Fourier transform
+		// --- Distance between two successive input/output elements
+		int istride = 1, ostride = 1;
 		int idist = DATASIZE, odist = DATASIZE; // --- Distance between batches
-		int inembed[] = { 0 };                  // --- Input size with pitch (ignored for 1D transforms)
-		int onembed[] = { 0 };                  // --- Output size with pitch (ignored for 1D transforms)
-		int batch = BATCH;                      // --- Number of batched executions
+		// --- Input/Output size with pitch (ignored for 1D transforms)
+		int inembed[] = { 0 };
+		int onembed[] = { 0 };
+		int batch = BATCH;       // --- Number of batched executions
 		cufftPlanMany(&handle, rank, n,
 						inembed, istride, idist,
 						onembed, ostride, odist, CUFFT_C2C, batch);
@@ -382,7 +411,9 @@ namespace NpsGazeboSonar {
 		cufftExecC2C(handle,  deviceInputData, deviceOutputData, CUFFT_INVERSE);
 
 		// --- Device->Host copy of the results
-		SAFE_CALL(cudaMemcpy(hostOutputData, deviceOutputData, DATASIZE * BATCH * sizeof(cufftComplex), cudaMemcpyDeviceToHost),"FFT CUDA Memcopy Failed");
+		SAFE_CALL(cudaMemcpy(hostOutputData, deviceOutputData,
+						DATASIZE * BATCH * sizeof(cufftComplex),
+						cudaMemcpyDeviceToHost),"FFT CUDA Memcopy Failed");
 
 		cufftDestroy(handle);
 		cudaFree(deviceOutputData);
@@ -392,15 +423,18 @@ namespace NpsGazeboSonar {
 		{
 			for (int f = 0; f < nFreq; f++)
 			{
-				P_Beams_F[beam][f] = Complex(hostOutputData[beam*DATASIZE + f].x/DATASIZE,
-											hostOutputData[beam*DATASIZE + f].y/DATASIZE);
+				P_Beams_F[beam][f] =
+							Complex(hostOutputData[beam*DATASIZE + f].x/DATASIZE,
+									hostOutputData[beam*DATASIZE + f].y/DATASIZE);
 			}
 		}
 
 		// For calc time measure
 		// stop = std::chrono::high_resolution_clock::now();
-		// duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-		// printf("GPU FFT Calc Time %lld/100 [s]\n",static_cast<long long int>(duration.count()/10000));
+		// duration = std::chrono::duration_cast
+		// 					<std::chrono::microseconds>(stop - start);
+		// printf("GPU FFT Calc Time %lld/100 [s]\n",
+		// 					static_cast<long long int>(duration.count()/10000));
 
 		return P_Beams_F;
 	}

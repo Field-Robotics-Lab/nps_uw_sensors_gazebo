@@ -64,15 +64,16 @@ NpsGazeboRosGpuSingleBeamSonar::NpsGazeboRosGpuSingleBeamSonar()
 // Destructor
 NpsGazeboRosGpuSingleBeamSonar::~NpsGazeboRosGpuSingleBeamSonar()
 {
-  ROS_DEBUG_STREAM_NAMED("gpu_laser_sonar","Shutting down GPU Laser");
+  ROS_DEBUG_STREAM_NAMED("gpu_laser_sonar", "Shutting down GPU Laser");
   this->rosnode_->shutdown();
   delete this->rosnode_;
-  ROS_DEBUG_STREAM_NAMED("gpu_laser_sonar","Unloaded");
+  ROS_DEBUG_STREAM_NAMED("gpu_laser_sonar", "Unloaded");
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // Load the controller
-void NpsGazeboRosGpuSingleBeamSonar::Load(sensors::SensorPtr _parent, sdf::ElementPtr _sdf)
+void NpsGazeboRosGpuSingleBeamSonar::Load
+            (sensors::SensorPtr _parent, sdf::ElementPtr _sdf)
 {
 std::cout << "NpsGazeboRosGpuSingleBeamSonar Load\n";
 
@@ -89,13 +90,15 @@ std::cout << "NpsGazeboRosGpuSingleBeamSonar Load\n";
     dynamic_pointer_cast<sensors::GpuRaySensor>(_parent);
 
   if (!this->parent_ray_sensor_)
-    gzthrow("NpsGazeboRosGpuSingleBeamSonar controller requires a Ray Sensor as its parent");
+    gzthrow("NpsGazeboRosGpuSingleBeamSonar controller
+            requires a Ray Sensor as its parent");
 
   this->robot_namespace_ =  GetRobotNamespace(_parent, _sdf, "Laser");
 
   if (!this->sdf->HasElement("frameName"))
   {
-    ROS_INFO_NAMED("gpu_laser_sonar", "NpsGazeboRosGpuSingleBeamSonar plugin missing <frameName>, defaults to /world");
+    ROS_INFO_NAMED("gpu_laser_sonar", "NpsGazeboRosGpuSingleBeamSonar
+                  plugin missing <frameName>, defaults to /world");
     this->frame_name_ = "/world";
   }
   else
@@ -103,7 +106,8 @@ std::cout << "NpsGazeboRosGpuSingleBeamSonar Load\n";
 
   if (!this->sdf->HasElement("topicName"))
   {
-    ROS_INFO_NAMED("gpu_laser_sonar", "NpsGazeboRosGpuSingleBeamSonar plugin missing <topicName>, defaults to /world");
+    ROS_INFO_NAMED("gpu_laser_sonar", "NpsGazeboRosGpuSingleBeamSonar
+                  plugin missing <topicName>, defaults to /world");
     this->topic_name_ = "/world";
   }
   else
@@ -115,12 +119,16 @@ std::cout << "NpsGazeboRosGpuSingleBeamSonar Load\n";
   // Make sure the ROS node for Gazebo has already been initialized
   if (!ros::isInitialized())
   {
-    ROS_FATAL_STREAM_NAMED("gpu_laser_sonar", "A ROS node for Gazebo has not been initialized, unable to load plugin. "
-      << "Load the Gazebo system plugin 'libgazebo_ros_api_plugin.so' in the gazebo_ros package)");
+    ROS_FATAL_STREAM_NAMED("gpu_laser_sonar", "A ROS node for Gazebo h
+              as not been initialized, unable to load plugin. "
+      << "Load the Gazebo system plugin 'libgazebo_ros_api_plugin.so'
+              in the gazebo_ros package)");
     return;
   }
 
-  ROS_INFO_NAMED("gpu_laser_sonar", "Starting NpsGazeboRosGpuSingleBeamSonar Plugin (ns = %s)", this->robot_namespace_.c_str() );
+  ROS_INFO_NAMED("gpu_laser_sonar",
+          "Starting NpsGazeboRosGpuSingleBeamSonar
+          Plugin (ns = %s)", this->robot_namespace_.c_str() );
   // ros callback queue for processing subscription
   this->deferred_load_thread_ = boost::thread(
     boost::bind(&NpsGazeboRosGpuSingleBeamSonar::LoadThread, this));
@@ -143,7 +151,8 @@ void NpsGazeboRosGpuSingleBeamSonar::LoadThread()
       this->tf_prefix_ = this->robot_namespace_;
       boost::trim_right_if(this->tf_prefix_,boost::is_any_of("/"));
   }
-  ROS_INFO_NAMED("gpu_laser_sonar", "GPU Laser Plugin (ns = %s) <tf_prefix_>, set to \"%s\"",
+  ROS_INFO_NAMED("gpu_laser_sonar",
+            "GPU Laser Plugin (ns = %s) <tf_prefix_>, set to \"%s\"",
              this->robot_namespace_.c_str(), this->tf_prefix_.c_str());
 
   // resolve tf prefix
@@ -189,7 +198,7 @@ void NpsGazeboRosGpuSingleBeamSonar::LaserDisconnect()
     this->laser_scan_sub_.reset();
 }
 
-/* original code copies Gazebo _msg to ROS laser_msg and publishes 
+/* original code copies Gazebo _msg to ROS laser_msg and publishes
 ////////////////////////////////////////////////////////////////////////////////
 // Convert new Gazebo message to ROS message and publish it
 void NpsGazeboRosGpuSingleBeamSonar::OnScan(ConstLaserScanStampedPtr &_msg)

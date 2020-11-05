@@ -43,5 +43,6 @@ namespace NpsGazeboSonar {
 										double _attenuation);
 
     /// \brief Incident Angle Calculation Function Wrapper
-	void incident_angle_wrapper(float &_angle, float _azimuth, float _elevation, float *_normal);
+	void incident_angle_wrapper(float &_angle, float _azimuth,
+								float _elevation, float *_normal);
 }
