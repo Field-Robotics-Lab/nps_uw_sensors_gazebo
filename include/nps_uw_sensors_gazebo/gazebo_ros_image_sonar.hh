@@ -122,7 +122,7 @@ namespace gazebo
     private: bool constMu;
     private: double absorption;
     private: double attenuation;
-    private: double mu; // surface reflectivity
+    private: double mu;  // surface reflectivity
     private: double fmin;
     private: double fmax;
     private: double df;

@@ -27,15 +27,14 @@
    Date: 7 May 2020
  */
 
+#include "nps_uw_sensors_gazebo/nps_gazebo_ros_gpu_sonar_single_beam.h"
+
 #include <assert.h>
 
 #include <tf/tf.h>
 #include <tf/transform_listener.h>
 
 #include <gazebo_plugins/gazebo_ros_utils.h>
-
-#include "nps_uw_sensors_gazebo/nps_gazebo_ros_gpu_sonar_single_beam.h"
-
 #include <sdf/sdf.hh>
 
 #include <gazebo/physics/World.hh>
@@ -133,7 +132,6 @@ std::cout << "NpsGazeboRosGpuSingleBeamSonar Load\n";
   // ros callback queue for processing subscription
   this->deferred_load_thread_ = boost::thread(
     boost::bind(&NpsGazeboRosGpuSingleBeamSonar::LoadThread, this));
-
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -149,7 +147,7 @@ void NpsGazeboRosGpuSingleBeamSonar::LoadThread()
   this->rosnode_ = new ros::NodeHandle(this->robot_namespace_);
 
   this->tf_prefix_ = tf::getPrefixParam(*this->rosnode_);
-    if(this->tf_prefix_.empty()) {
+    if( this->tf_prefix_.empty() ) {
       this->tf_prefix_ = this->robot_namespace_;
       boost::trim_right_if(this->tf_prefix_, boost::is_any_of("/"));
   }
