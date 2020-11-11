@@ -20,6 +20,8 @@
 
 #include <chrono>
 
+#define BLOCK_SIZE 512
+
 static inline void _safe_cuda_call(cudaError err, const char* msg,
 									const char* file_name, const int line_number)
 {
@@ -65,12 +67,58 @@ __device__ float compute_incidence(float azimuth, float elevation, float *normal
 }
 
 ///////////////////////////////////////////////////////////////////////////
-__device__ float unnormalized_sinc(float t)
+__device__ __host__ float unnormalized_sinc(float t)
 {
 	if (abs(t) < 1E-8)
 		return 1.0;
 	else
 		return sin(t)/t;
+}
+
+///////////////////////////////////////////////////////////////////////////
+__global__ void total(thrust::complex<float> *input, thrust::complex<float> *output, int len) {
+    //@@ Load a segment of the input vector into shared memory
+    __shared__ thrust::complex<float> partialSum[2 * BLOCK_SIZE];
+    unsigned int t = threadIdx.x, start = 2 * blockIdx.x * BLOCK_SIZE;
+    if (start + t < len)
+       partialSum[t] = input[start + t];
+    else
+       partialSum[t] = 0;
+    if (start + BLOCK_SIZE + t < len)
+       partialSum[BLOCK_SIZE + t] = input[start + BLOCK_SIZE + t];
+    else
+       partialSum[BLOCK_SIZE + t] = thrust::complex<float>(0.0, 0.0);
+    //@@ Traverse the reduction tree
+    for (unsigned int stride = BLOCK_SIZE; stride >= 1; stride >>= 1) {
+       __syncthreads();
+       if (t < stride)
+          partialSum[t] += partialSum[t+stride];
+    }
+    //@@ Write the computed sum of the block to the output vector at the
+    //@@ correct index
+    if (t == 0)
+       output[blockIdx.x] = partialSum[0];
+}
+
+__global__ void sum(thrust::complex<float>* input)
+{
+	const int tid = threadIdx.x;
+
+	auto step_size = 1;
+	int number_of_threads = blockDim.x;
+
+	while (number_of_threads > 0)
+	{
+		if (tid < number_of_threads) // still alive?
+		{
+			const auto fst = tid * step_size * 2;
+			const auto snd = fst + step_size;
+			input[fst] += input[snd];
+		}
+
+		step_size <<= 1;
+		number_of_threads >>= 1;
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -82,7 +130,7 @@ __global__ void sonar_calculation(thrust::complex<float> *P_Beams,
 									int height,
 									int depth_image_step,
 									int normal_image_step,
-									unsigned char* rand_image,
+									float* rand_image,
 									int rand_image_step,
 									float hPixelSize,
 									float vPixelSize,
@@ -93,13 +141,15 @@ __global__ void sonar_calculation(thrust::complex<float> *P_Beams,
 									float ray_elevationAngleWidth,
 									float ray_azimuthAngleWidth,
 									float soundSpeed,
+									float sourceTerm,
 									int nBeams, int nRays,
 									int beamSkips, int raySkips,
-									float sonarFreq, float df, float fmin,
+									float sonarFreq, float delta_f,
 									int nFreq, float bandwidth,
-									float mu, float attenuation)
+									float mu_sqrt, float attenuation,
+									float area_scaler)
 {
-	//2D Index of current thread
+	// 2D Index of current thread
 	const int beam = blockIdx.x * blockDim.x + threadIdx.x;
 	const int ray = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -114,54 +164,54 @@ __global__ void sonar_calculation(thrust::complex<float> *P_Beams,
 		// Input parameters for ray processing
 		float ray_azimuthAngle = -(hFOV/2.0) + beam * hPixelSize + hPixelSize/2.0;
 		float ray_elevationAngle = (vFOV/2.0) - ray * vPixelSize - vPixelSize/2.0;
-		float distance = depth_image[depth_index] * 0.5f;
+		float distance = depth_image[depth_index] * 1.0f;
 		float normal[3] = {normal_image[normal_index],
 							normal_image[normal_index + 1],
 							normal_image[normal_index + 2]};
 
 		// Beam pattern
-		float azimuthBeamPattern = pow(abs(unnormalized_sinc(M_PI * 0.884
-						/ ray_azimuthAngleWidth * sin(ray_azimuthAngle))), 2);
-		float elevationBeamPattern = pow(abs(unnormalized_sinc(M_PI * 0.884
-						/ ray_elevationAngleWidth * sin(ray_elevationAngle))), 2);
-
+		// float azimuthBeamPattern = abs(unnormalized_sinc(M_PI * 0.884
+		// 				/ ray_azimuthAngleWidth * sin(ray_azimuthAngle)));
+		// only one column of rays for each beam at beam center
+		float azimuthBeamPattern = 1.0;
+		float elevationBeamPattern = unnormalized_sinc(M_PI * 0.884
+						/ ray_elevationAngleWidth * sin(ray_elevationAngle));
 		// incidence angle
 		float incidence = compute_incidence(ray_azimuthAngle, ray_elevationAngle, normal);
 
 		// ----- Point scattering model ------ //
-		// generate a random number, (Gaussian noise)
-		// TODO : it's acting like a fixed value in a frame.
-		//        I should be random within a frame
-		float xi_z = rand_image[rand_index] * 0.003921569f;
-		float xi_y = rand_image[rand_index + 1] * 0.003921569f;
-		// // Calculate amplitude
-		thrust::complex<float> random_unit = thrust::complex<float>(xi_z, xi_y);
-		thrust::complex<float> area =
-					thrust::complex<float>(sqrt(mu * pow(cos(incidence), 2) * pow(distance, 2)
-					* ray_azimuthAngleWidth * ray_elevationAngleWidth), 0.0);
+		// Gaussian noise generated using opencv RNG
+		float xi_z = rand_image[rand_index];
+		float xi_y = rand_image[rand_index + 1];
+
+		// Calculate amplitude
+		thrust::complex<float> randomAmps = thrust::complex<float>(xi_z/sqrt(2.0), xi_y/sqrt(2.0));
+		thrust::complex<float> lambert_sqrt =
+					thrust::complex<float>(mu_sqrt*cos(incidence), 0.0);
 		thrust::complex<float> beamPattern =
 					thrust::complex<float>(azimuthBeamPattern * elevationBeamPattern, 0.0);
-		thrust::complex<float> rms_scaler =
-					thrust::complex<float>(1.0 / sqrt(2.0), 0.0);
-		thrust::complex<float> amplitude = random_unit * rms_scaler * area * beamPattern;
+		thrust::complex<float> targetArea_sqrt = thrust::complex<float>(sqrt(distance * area_scaler), 0.0);
+		thrust::complex<float> propagationTerm =
+					thrust::complex<float>(1.0/pow(distance, 2.0) * exp(-2.0 * 1e-5 * distance), 0.0);
+
+		thrust::complex<float> amplitude = randomAmps * thrust::complex<float>(sourceTerm, 0.0)
+					* propagationTerm * beamPattern * lambert_sqrt * targetArea_sqrt;
 
 		// Summation of Echo returned from a signal (frequency domain)
-		for (size_t f = 0; f < nFreq; f++)  // frequency loop from fmin to fmax
+		for (size_t f = 0; f < nFreq; f++)
 		{
-			float freq = fmin + df*f;
-			float kw = 2.0*M_PI*freq/soundSpeed;   // wave vector
-			thrust::complex<float> K =
-					thrust::complex<float>(kw, attenuation);  // attenuation constant K1f
-			thrust::complex<float> minusUnitImag = thrust::complex<float>(0.0, -1.0);
-			thrust::complex<float> complexDistance = thrust::complex<float>(distance, 0.0);
+			float freq;
+			if (nFreq % 2 == 0)
+				freq = delta_f * (-nFreq/2 + f + 1);
+			else
+				freq = delta_f * (-(nFreq-1)/2 + f + 1);
+			float kw = 2.0*M_PI*freq/soundSpeed;  // wave vector
+			thrust::complex<float> K = thrust::complex<float>(kw, attenuation);  // attenuation constant K1f
+			thrust::complex<float> unitImag = thrust::complex<float>(0.0, 1.0);
+			thrust::complex<float> complexDistance = thrust::complex<float>(0.0, 2*distance);
 			// Transmit spectrum, frequency domain
-			thrust::complex<float> S_f =
-					thrust::complex<float>(1e11 * exp(-pow(freq - sonarFreq, 2)
-											* pow(M_PI, 2) / pow(bandwidth, 2)), 0.0);
-
-			P_Beams[beam * nFreq * (int)(nRays/raySkips) + ray/raySkips * nFreq + f] =
-						S_f * amplitude * exp(minusUnitImag * K * complexDistance
-							* thrust::complex<float>(2.0, 0.0)) / pow(complexDistance, 2);
+			P_Beams[beam * nFreq * (int)(nRays/raySkips) + (int)(ray/raySkips) * nFreq + f] =
+					exp(thrust::complex<float>(0.0, 2*distance)*K) * amplitude;
 		}
 	}
 	// Stopper for debugging
@@ -196,15 +246,18 @@ namespace NpsGazeboSonar {
 									double _ray_elevationAngleWidth,
 									double _ray_azimuthAngleWidth,
 									double _soundSpeed,
+									double _maxDistance,
+									double _sourceLevel,
 									int _nBeams, int _nRays,
 									int _beamSkips, int _raySkips,
 									double _sonarFreq,
-									double _fmax, double _fmin,
 									double _bandwidth,
 									double _mu,
-									double _attenuation)
+									double _attenuation,
+									float *window,
+									float **beamCorrector)
 	{
-		// auto start = std::chrono::high_resolution_clock::now();
+		auto start = std::chrono::high_resolution_clock::now();
 
 		// ----  Allocation of properties parameters  ---- //
 		float hPixelSize = (float) _hPixelSize;
@@ -216,44 +269,52 @@ namespace NpsGazeboSonar {
 		float ray_elevationAngleWidth = (float) _ray_elevationAngleWidth;
 		float ray_azimuthAngleWidth = (float) _ray_azimuthAngleWidth;
 		float soundSpeed = (float) _soundSpeed;
+		float maxDistance = (float) _maxDistance;
 		float sonarFreq = (float) _sonarFreq;
 		float bandwidth = (float) _bandwidth;
-		float fmin = (float) _fmin;
 		float mu = (float) _mu;
 		float attenuation = (float) _attenuation;
 		int nBeams = _nBeams; int nRays = _nRays;
 		int beamSkips = _beamSkips; int raySkips = _raySkips;
 
 		// ---------   Calculation parameters   --------- //
-		double min_dist, max_dist;
-		cv::minMaxLoc(depth_image, &min_dist, &max_dist);
-		float max_distance = (float) max_dist;
-		// Sampling periods
+		// double min_dist, max_dist;
+		// cv::minMaxLoc(depth_image, &min_dist, &max_dist);
+		// float max_distance = (float) max_dist;
+		float max_distance = maxDistance;
+		// Signal
 		float max_T = max_distance*2.0/soundSpeed;
 		float delta_f = 1.0/max_T;
-		const int nFreq = int(round(((float) _fmax  - (float) _fmin ) / delta_f));
-		float df = ( (float) _fmax - (float) _fmin)/(nFreq-1);
+		float delta_t = 1.0/bandwidth;
+		int nFreq = ceil(bandwidth/delta_f);
 		ray_azimuthAngleWidth = ray_azimuthAngleWidth * (beamSkips * 1.0f);
 		ray_elevationAngleWidth = ray_elevationAngleWidth * (raySkips * 1.0f);
+		// Precalculation
+		float mu_sqrt = sqrt(mu);
+		float area_scaler = sqrt(ray_azimuthAngleWidth * ray_elevationAngleWidth);
+		float sourceLevel = (float) _sourceLevel;;  // db re 1 muPa;
+		float pref = 1e-6;  // 1 micro pascal (muPa);
+		float sourceTerm = sqrt(pow(10,(sourceLevel/10)))*pref;  // source term
 
 		// ---------   Allocate GPU memory for image   --------- //
 		// rand number generator
-		cv::Mat rand_image = cv::Mat(depth_image.rows, depth_image.cols, CV_8UC2);
-		cv::randu(rand_image, cv::Scalar::all(0), cv::Scalar::all(255));
+		cv::Mat rand_image = cv::Mat(depth_image.rows, depth_image.cols, CV_32FC2);
+		cv::RNG rng = cv::theRNG();
+		rng.fill(rand_image,cv::RNG::NORMAL,0.f,1.f);
 		//Calculate total number of bytes of input and output image
 		const int depth_image_Bytes = depth_image.step * depth_image.rows;
 		const int normal_image_Bytes = normal_image.step * normal_image.rows;
 		const int rand_image_Bytes = rand_image.step * rand_image.rows;
 
 		float *d_depth_image, *d_normal_image;
-		unsigned char *d_rand_image;
+		float *d_rand_image;
 
 		//Allocate device memory
 		SAFE_CALL(cudaMalloc<float>(&d_depth_image,depth_image_Bytes),
 									"CUDA Malloc Failed");
 		SAFE_CALL(cudaMalloc<float>(&d_normal_image,normal_image_Bytes),
 									"CUDA Malloc Failed");
-		SAFE_CALL(cudaMalloc<unsigned char>(&d_rand_image,rand_image_Bytes),
+		SAFE_CALL(cudaMalloc<float>(&d_rand_image,rand_image_Bytes),
 									"CUDA Malloc Failed");
 
 		//Copy data from OpenCV input image to device memory
@@ -302,11 +363,13 @@ namespace NpsGazeboSonar {
 										   ray_elevationAngleWidth,
 										   ray_azimuthAngleWidth,
 										   soundSpeed,
+										   sourceTerm,
 										   nBeams, nRays,
 										   beamSkips, raySkips,
-										   sonarFreq, df, fmin,
+										   sonarFreq, delta_f,
 										   nFreq, bandwidth,
-										   mu, attenuation);
+										   mu_sqrt, attenuation,
+										   area_scaler);
 
 		//Synchronize to check for any kernel launch errors
 		SAFE_CALL(cudaDeviceSynchronize(),"Kernel Launch Failed");
@@ -320,40 +383,129 @@ namespace NpsGazeboSonar {
 		cudaFree(d_normal_image);
 		cudaFree(d_P_Beams);
 
-		// // For calc time measure
-		// auto stop = std::chrono::high_resolution_clock::now();
-		// auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-		// printf("GPU Sonar Calc Time %lld/100 [s]\n",static_cast<long long int>(duration.count()/10000));
-		// start = std::chrono::high_resolution_clock::now();
+		// For calc time measure
+		auto stop = std::chrono::high_resolution_clock::now();
+		auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+		printf("GPU Sonar Calc Time %lld/100 [s]\n",static_cast<long long int>(duration.count()/10000));
+		start = std::chrono::high_resolution_clock::now();
 
 		// Preallocate an array for return
 		CArray2D P_Beams_F(CArray(nFreq), nBeams);
 
-		// Ray summation
-		for (size_t beam = 0; beam < nBeams; beam += beamSkips)
-		{
-			for (size_t f = 0; f < nFreq; f++)
-			{
-				float P_Beam_real = 0.0;
-				float P_Beam_imag = 0.0;
-				for (size_t ray = 0; ray < nRays; ray += raySkips)
-				{
-					P_Beam_real += P_Beams[beam * nFreq * (int)(nRays/raySkips)
-											+ ray/raySkips * nFreq + f].real();
-					P_Beam_imag += P_Beams[beam * nFreq * (int)(nRays/raySkips)
-											+ ray/raySkips * nFreq + f].imag();
-				}
-				P_Beams_F[beam][f] = Complex(P_Beam_real, P_Beam_imag);
-			}
+		// // Array allocation for beams
+		// thrust::complex<float> *P_Kernel;
+		// thrust::complex<float> *d_P_Kernel;
+		// const int P_Kernel_N = (int)(nRays/raySkips);
+		// const int P_Kernel_Bytes = sizeof(thrust::complex<float>) * P_Kernel_N;
+		// P_Kernel = (thrust::complex<float>*)malloc(P_Kernel_Bytes);
+		// SAFE_CALL(cudaMalloc<thrust::complex<float>>(&d_P_Kernel,P_Kernel_Bytes),"CUDA Malloc Failed");
+
+		// // GPU summation
+        // for (size_t beam = 0; beam < nBeams; beam += beamSkips)
+        // {
+        //     for (size_t f = 0; f < nFreq; f++)
+        //     {
+		// 		// Allocate ray data
+		// 		for (size_t ray = 0; ray < nRays; ray += raySkips)
+		// 		{
+		// 			P_Kernel[ray] =
+		// 				thrust::complex<float>(P_Beams[beam * nFreq * (int)(nRays/raySkips)
+		// 									    + (int)(ray/raySkips) * nFreq + f].real(),
+		// 								       P_Beams[beam * nFreq * (int)(nRays/raySkips)
+		// 									    + (int)(ray/raySkips) * nFreq + f].imag());
+		// 		}
+		// 		SAFE_CALL(cudaMemcpy(d_P_Kernel,P_Kernel,P_Kernel_Bytes,
+		// 			cudaMemcpyHostToDevice),"CUDA Memcpy Host To Device Failed");
+
+		// 		sum<<<1, (int)(nRays/raySkips)>>>(d_P_Kernel);
+
+		// 		//Synchronize to check for any kernel launch errors
+		// 		SAFE_CALL(cudaDeviceSynchronize(),"Kernel Launch Failed");
+
+		// 		//Copy back data from destination device meory
+		// 		thrust::complex<float> result;
+		// 		SAFE_CALL(cudaMemcpy(&result,d_P_Kernel,sizeof(thrust::complex<float>),
+		// 			cudaMemcpyDeviceToHost),"CUDA Memcpy Host To Device Failed");
+
+		// 		P_Beams_F[beam][f] = Complex(result.real() * window[f],
+		// 									 result.imag() * window[f]);
+		// 	}
+		// }
+
+		// // Free GPU memory
+		// cudaFree(d_P_Kernel);
+
+        // Ray summation
+        for (size_t beam = 0; beam < nBeams; beam += beamSkips)
+        {
+			// Frequency loop
+            for (size_t f = 0; f < nFreq; f++)
+            {
+                float P_Beam_real = 0.0;
+                float P_Beam_imag = 0.0;
+                for (size_t ray = 0; ray < nRays; ray += raySkips)
+                {
+                    P_Beam_real += P_Beams[beam * nFreq * (int)(nRays/raySkips)
+                                     + (int)(ray/raySkips) * nFreq + f].real();
+                    P_Beam_imag += P_Beams[beam * nFreq * (int)(nRays/raySkips)
+                                     + (int)(ray/raySkips) * nFreq + f].imag();
+                }
+				P_Beams_F[beam][f] = Complex(P_Beam_real * window[f],
+                            				 P_Beam_imag * window[f]);
+            }
 		}
 
 		// For calc time measure
-		// stop = std::chrono::high_resolution_clock::now();
-		// duration = std::chrono::duration_cast
-		// 		<std::chrono::microseconds>(stop - start);
-		// printf("GPU Sonar Summation %lld/100 [s]\n",
-		// 		static_cast<long long int>(duration.count()/10000));
-		// start = std::chrono::high_resolution_clock::now();
+		stop = std::chrono::high_resolution_clock::now();
+		duration = std::chrono::duration_cast
+				<std::chrono::microseconds>(stop - start);
+		printf("GPU Sonar Summation %lld/100 [s]\n",
+				static_cast<long long int>(duration.count()/10000));
+		start = std::chrono::high_resolution_clock::now();
+
+		// ----  Beam culling correction  ---- //
+		CArray2D P_Beams_F_corrected(CArray(nFreq), nBeams);
+		float *beamWeightSums;  beamWeightSums = new float [nBeams];
+        for (size_t beam = 0; beam < nBeams; beam += beamSkips)
+        {
+			beamWeightSums[beam] = 0.0;
+			for (size_t f = 0; f < nFreq; f++)
+				P_Beams_F_corrected[beam][f] = 0.0;
+		}
+        // Beam culling correction precalculation
+        for (size_t beam = 0; beam < nBeams; beam += beamSkips)
+        {
+            float azimuthAngle = -(hFOV/2.0) + beam * hPixelSize + hPixelSize/2.0;
+			for (size_t beam_other = 0; beam_other < nBeams; beam_other += beamSkips)
+			{
+				float azimuthAngle_other =
+					-(hFOV/2.0) + beam_other * hPixelSize + hPixelSize/2.0;
+				float azimuthBeamPattern =
+					unnormalized_sinc(M_PI * 0.884 / ray_azimuthAngleWidth
+					* sin(azimuthAngle-azimuthAngle_other));
+				float beamWieght = azimuthBeamPattern;
+				for (size_t f = 0; f < nFreq; f++)
+				{
+					P_Beams_F_corrected[beam][f] +=
+						P_Beams_F[beam_other][f] * Complex(beamWieght, 0);
+				}
+				beamWeightSums[beam] += pow(azimuthBeamPattern, 2);
+			}
+			beamWeightSums[beam] = sqrt(beamWeightSums[beam]);
+        }
+        for (size_t beam = 0; beam < nBeams; beam += beamSkips)
+			for (size_t f = 0; f < nFreq; f++)
+				P_Beams_F_corrected[beam][f] /= Complex(beamWeightSums[beam], 0);
+		// return data
+		P_Beams_F = P_Beams_F_corrected;
+
+		// For calc time measure
+		stop = std::chrono::high_resolution_clock::now();
+		duration = std::chrono::duration_cast
+				<std::chrono::microseconds>(stop - start);
+		printf("GPU Sonar Correction %lld/100 [s]\n",
+				static_cast<long long int>(duration.count()/10000));
+		start = std::chrono::high_resolution_clock::now();
 
 		// ========== FFT ======== //
 		const int DATASIZE = pow(2, ceil(log(nFreq)/log(2)));
@@ -408,7 +560,7 @@ namespace NpsGazeboSonar {
 						inembed, istride, idist,
 						onembed, ostride, odist, CUFFT_C2C, batch);
 
-		cufftExecC2C(handle,  deviceInputData, deviceOutputData, CUFFT_INVERSE);
+		cufftExecC2C(handle,  deviceInputData, deviceOutputData, CUFFT_FORWARD);
 
 		// --- Device->Host copy of the results
 		SAFE_CALL(cudaMemcpy(hostOutputData, deviceOutputData,
@@ -424,17 +576,17 @@ namespace NpsGazeboSonar {
 			for (int f = 0; f < nFreq; f++)
 			{
 				P_Beams_F[beam][f] =
-							Complex(hostOutputData[beam*DATASIZE + f].x/DATASIZE,
-									hostOutputData[beam*DATASIZE + f].y/DATASIZE);
+					Complex(hostOutputData[beam*DATASIZE + f].x / DATASIZE * delta_f,
+							hostOutputData[beam*DATASIZE + f].y / DATASIZE * delta_f);
 			}
 		}
 
 		// For calc time measure
-		// stop = std::chrono::high_resolution_clock::now();
-		// duration = std::chrono::duration_cast
-		// 					<std::chrono::microseconds>(stop - start);
-		// printf("GPU FFT Calc Time %lld/100 [s]\n",
-		// 					static_cast<long long int>(duration.count()/10000));
+		stop = std::chrono::high_resolution_clock::now();
+		duration = std::chrono::duration_cast
+							<std::chrono::microseconds>(stop - start);
+		printf("GPU FFT Calc Time %lld/100 [s]\n",
+							static_cast<long long int>(duration.count()/10000));
 
 		return P_Beams_F;
 	}

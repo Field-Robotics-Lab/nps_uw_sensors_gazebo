@@ -34,13 +34,16 @@ namespace NpsGazeboSonar {
 										double _ray_elevationAngleWidth,
 										double _ray_azimuthAngleWidth,
 										double _soundSpeed,
+										double _maxDistance,
+										double _sourceLevel,
 										int _nBeams, int _nRays,
 										int _beamSkips, int _raySkips,
 										double _sonarFreq,
-										double _fmax, double _fmin,
 										double _bandwidth,
 										double _mu,
-										double _attenuation);
+										double _attenuation,
+										float *_window,
+										float **_beamCorrector);
 
     /// \brief Incident Angle Calculation Function Wrapper
 	void incident_angle_wrapper(float &_angle, float _azimuth,

@@ -178,16 +178,21 @@ void NpsGazeboRosImageSonar::Load(sensors::SensorPtr _parent,
   else
     this->bandwidth =
       _sdf->GetElement("bandwidth")->Get<double>();
-  if (!_sdf->HasElement("freqResolution"))
-    this->freqResolution = 100e2;
-  else
-    this->freqResolution =
-      _sdf->GetElement("freqResolution")->Get<double>();
   if (!_sdf->HasElement("soundSpeed"))
     this->soundSpeed = 1500;
   else
     this->soundSpeed =
       _sdf->GetElement("soundSpeed")->Get<double>();
+  if (!_sdf->HasElement("maxDistance"))
+    this->maxDistance = 60;
+  else
+    this->maxDistance =
+      _sdf->GetElement("maxDistance")->Get<double>();
+  if (!_sdf->HasElement("sourceLevel"))
+    this->sourceLevel = 220;
+  else
+    this->sourceLevel =
+      _sdf->GetElement("sourceLevel")->Get<double>();
   if (!_sdf->HasElement("constantReflectivity"))
     this->constMu = true;
   else
@@ -207,17 +212,27 @@ void NpsGazeboRosImageSonar::Load(sensors::SensorPtr _parent,
   if (this->beamSkips == 0) this->beamSkips = 1;
   if (this->raySkips == 0) this->raySkips = 1;
 
-  // Calculate common sonar parameters
-  this->fmin = this->sonarFreq - this->bandwidth/2.0*4.0;
-  this->fmax = this->sonarFreq + this->bandwidth/2.0*4.0;
+  // --- Calculate common sonar parameters ---- //
   // if (this->constMu)
-  this->mu = 10e-4;
+  this->mu = 1e-3;
   // else
   //   // nothing yet
 
   // Transmission path properties (typical model used here)
   this->absorption = 0.0354; // [dB/m]
   this->attenuation = this->absorption*log(10)/20.0;
+
+  // Range vector
+  float max_T = this->maxDistance*2.0/this->soundSpeed;
+  float delta_f = 1.0/max_T;
+  float delta_t = 1.0/this->bandwidth;
+  this->nFreq = ceil(this->bandwidth/delta_f);
+  int nTime = nFreq;
+  this->rangeVector = new float[nTime];
+  for (int i = 0; i < nTime; i++)
+  {
+    this->rangeVector[i] = delta_t*i*this->soundSpeed/2.0;
+  }
 
   // FOV, Number of beams, number of rays are defined at model.sdf
   // Currently, this->width equals # of beams, and this->height equals # of rays
@@ -233,6 +248,7 @@ void NpsGazeboRosImageSonar::Load(sensors::SensorPtr _parent,
   ROS_INFO_STREAM("==================================================");
   ROS_INFO_STREAM("============   SONAR PLUGIN LOADED   =============");
   ROS_INFO_STREAM("==================================================");
+  ROS_INFO_STREAM("Max view range = " << this->maxDistance);
   ROS_INFO_STREAM("# of Beams = " << this->nBeams);
   ROS_INFO_STREAM("# of Rays/Beam (Elevation, Azimuth) = ("
       << ray_nElevationRays << ", " << ray_nAzimuthRays << ")");
@@ -257,6 +273,53 @@ void NpsGazeboRosImageSonar::Load(sensors::SensorPtr _parent,
     std::string logfilename("/tmp/SonarRawData_000001.csv");
     if (stat (logfilename.c_str(), &buffer) == 0)
       system("rm /tmp/SonarRawData*.csv");
+  }
+
+  // -- Pre calculations for sonar -- //
+  // Hamming window
+  this->window = new float[this->nFreq];
+  float windowSum = 0;
+  for (size_t f = 0; f < this->nFreq; f++)
+  {
+    this->window[f] = 0.54 - 0.46 * cos(2.0*M_PI*(f+1)/this->nFreq);
+    windowSum += pow(this->window[f], 2.0);
+  }
+  for (size_t f = 0; f < this->nFreq; f++)
+    this->window[f] = this->window[f]/sqrt(windowSum);
+
+  // Beam culling correction precalculation
+  this->beamCorrector = new float*[nBeams];
+  for(int i = 0; i < nBeams; i++)
+      this->beamCorrector[i] = new float[nBeams];
+  float *beamWeightSums;  beamWeightSums = new float [nBeams];
+  double hFOV = this->parentSensor->DepthCamera()->HFOV().Radian();
+  double hPixelSize = hFOV / this->width;
+  double vFOV = this->parentSensor->DepthCamera()->VFOV().Radian();
+  double vPixelSize = vFOV / this->height;
+  for (size_t beam = 0; beam < nBeams; beam += beamSkips)
+    beamWeightSums[beam] = 0.0;
+  for (size_t beam = 0; beam < nBeams; beam += beamSkips)
+  {
+    float azimuthAngle = -(hFOV/2.0) + beam * hPixelSize + hPixelSize/2.0;
+    for (size_t beam_other = 0; beam_other < nBeams; beam_other += beamSkips)
+    {
+      float azimuthAngle_other =
+        -(hFOV/2.0) + beam_other * hPixelSize + hPixelSize/2.0;
+      float azimuthBeamPattern =
+        unnormalized_sinc(M_PI * 0.884 / vPixelSize
+              * sin(azimuthAngle-azimuthAngle_other));
+      float beamWieght = azimuthBeamPattern;
+      for (size_t f = 0; f < nFreq; f++)
+      {
+        beamCorrector[beam][beam_other] =  beamWieght;
+      }
+      beamWeightSums[beam] += pow(azimuthBeamPattern, 2);
+    }
+    beamWeightSums[beam] = sqrt(beamWeightSums[beam]);
+    for (size_t beam_other = 0; beam_other < nBeams; beam_other += beamSkips)
+    {
+      beamCorrector[beam][beam_other] /= beamWeightSums[beam];
+    }
   }
 
   load_connection_ =
@@ -393,14 +456,10 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
   double hPixelSize = hFOV / this->width;
 
   // For calc time measure
-  // auto start = std::chrono::high_resolution_clock::now();
+  auto start = std::chrono::high_resolution_clock::now();
   // ------------------------------------------------//
   // --------      Sonar calculations       -------- //
   // ------------------------------------------------//
-
-  // ------------------------------ //
-  // ------------- GPU ------------ //
-  // ------------------------------ //
   CArray2D P_Beams = NpsGazeboSonar::sonar_calculation_wrapper(
                   depth_image,   // cv::Mat& depth_image
 									normal_image,  // cv::Mat& normal_image
@@ -413,21 +472,23 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
 									hPixelSize/(this->nRays-1),  // _ray_elevationAngleWidth
 									vPixelSize,    // _ray_azimuthAngleWidth
 									this->soundSpeed,    // _soundSpeed
+									this->maxDistance,    // _maxDistance
+									this->sourceLevel,    // _sourceLevel
 									this->nBeams,        // _nBeams
 									this->nRays,         // _nRays
 									this->beamSkips,     // _beamSkips
 									this->raySkips,      // _raySkips
 									this->sonarFreq,     // _sonarFreq
-								  this->fmax,          // _fmax
-                  this->fmin,          // _fmin
                   this->bandwidth,     // _bandwidth
                   this->mu,            // _mu
-                  this->attenuation);  // _attenuation
+                  this->attenuation,   // _attenuation
+                  this->window,        // _window
+                  this->beamCorrector);  // _beamCorrector
 
   // For calc time measure
-  // auto stop = std::chrono::high_resolution_clock::now();
-  // auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  // ROS_INFO_STREAM("GPU Sonar Frame Calc Time " << duration.count()/10000 << "/100 [s]\n");
+  auto stop = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+  ROS_INFO_STREAM("GPU Sonar Frame Calc Time " << duration.count()/10000 << "/100 [s]\n");
 
   // CSV log write stream
   // Each cols corresponds to each beams
@@ -443,24 +504,18 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
       writeLog.open(filename.str().c_str(), std::ios_base::app);
       filename.clear();
       writeLog << "# Raw Sonar Data Log (Row: beams, Col: time series data)\n";
+      writeLog << "# First column is range vector\n";
       writeLog << "#  nBeams : " << nBeams << "\n";
       writeLog << "# Simulation time : " << time << "\n";
       for (size_t i = 0; i < P_Beams[0].size(); i++)
       {
-        if (P_Beams[0][i].imag() > 0)
-          writeLog << P_Beams[0][i].real() << "+"  << P_Beams[0][i].imag() << "i";
-        else
-          writeLog << P_Beams[0][i].real() << P_Beams[0][i].imag() << "i";
-
+        writeLog << this->rangeVector[i];  // writing range vector at first column
         for (size_t b = 0; b < nBeams; b += beamSkips)
         {
-          if (b != 0)
-          {
-            if (P_Beams[b][i].imag() > 0)
-              writeLog << "," << P_Beams[b][i].real() << "+" << P_Beams[b][i].imag() << "i";
-            else
-              writeLog << "," << P_Beams[b][i].real() << P_Beams[b][i].imag() << "i";
-          }
+          if (P_Beams[b][i].imag() > 0)
+            writeLog << "," << P_Beams[b][i].real() << "+" << P_Beams[b][i].imag() << "i";
+          else
+            writeLog << "," << P_Beams[b][i].real() << P_Beams[b][i].imag() << "i";
         }
         writeLog << "\n";
       }

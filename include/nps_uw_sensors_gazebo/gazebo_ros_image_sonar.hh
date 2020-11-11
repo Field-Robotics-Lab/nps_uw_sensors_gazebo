@@ -115,14 +115,17 @@ namespace gazebo
     /// \brief Parameters for sonar properties
     private: double sonarFreq;
     private: double bandwidth;
-    private: double freqResolution;
     private: double soundSpeed;
+    private: double maxDistance;
+    private: double sourceLevel;
     private: bool constMu;
     private: double absorption;
     private: double attenuation;
     private: double mu; // surface reflectivity
-    private: double fmin;
-    private: double fmax;
+    private: float* rangeVector;
+    private: float* window;
+    private: float** beamCorrector;
+    private: int nFreq;
     private: double df;
     private: int nBeams;
     private: int nRays;
