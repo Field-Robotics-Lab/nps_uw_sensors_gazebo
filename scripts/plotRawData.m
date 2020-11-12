@@ -2,13 +2,17 @@ clear;clc;
 % close all;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% titletext = 'Full/50m Range/512 Beams/114 Rays';
+% titletext = 'Ray Reduced/50m Range/512 Beams/11 Rays';
+titletext = 'Ray Range Reduced/10m Range/512 Beams/11 Rays';
+clims_base = [-60 -0];
 nBeams = 512;
 FOV = 90;
 xPlotRange = 10;
 yPlotRange = 5;
 filename = "../SonarRawData_000001.csv";
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-bw = 29.5e3; % bandwidth
+bw = 29.9e3; % bandwidth
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 Data = csvread(filename,4,0); clearvars Beams dist plotData
@@ -20,7 +24,7 @@ for i=2:plotSkips:nBeams+1
     jIndex = 0;
     for j=1:length(Data(:,1))
         jIndex = jIndex + 1;
-        plotData(iIndex,jIndex) = Data(j,i);
+        plotData(iIndex,jIndex) = Data(j,i)*sqrt(3);
     end
 end
 
@@ -35,10 +39,10 @@ y = range_vector.*sin(sonarBeams'/180*pi);
 figure;
 scatterPointSize = 8;
 scatter(x(:),y(:),scatterPointSize,20*log10(abs(plotData(:))),'filled')
-clims = [-60 0] + 20*log10(max(max(abs(plotData))));
+clims = clims_base + 20*log10(max(max(abs(plotData))));
 caxis(clims)
 colorbar
-title(['Bandwidth ' num2str(bw/1000) ' kHz' ])
+title(titletext)
 xlabel('X [m]')
 ylabel('Y [m]')
 h = colorbar;
@@ -49,6 +53,8 @@ colormap(hot)
 set(gca,'Color','k')
 xlim(1.02*[0 xPlotRange])
 ylim(1.02*[-yPlotRange yPlotRange])
+
+% caxis([10 65])
 
 % figure;
 % iPlots = 1:30:nBeams;

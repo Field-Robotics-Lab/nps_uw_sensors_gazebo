@@ -111,6 +111,7 @@ namespace gazebo
     private: void ComputeSonarImage(const float *_src);
     private: double ComputeIncidence(double azimuth, double elevation, cv::Vec3f normal);
     private: cv::Mat ComputeNormalImage(cv::Mat& depth);
+    private: void ComputeCorrector();
 
     /// \brief Parameters for sonar properties
     private: double sonarFreq;
@@ -124,7 +125,10 @@ namespace gazebo
     private: double mu; // surface reflectivity
     private: float* rangeVector;
     private: float* window;
+    private: float** rayCorrector;
+    private: float rayCorrectorSum;
     private: float** beamCorrector;
+    private: float beamCorrectorSum;
     private: int nFreq;
     private: double df;
     private: int nBeams;
@@ -189,7 +193,11 @@ namespace gazebo
   {
     try
     {
-      return sin(t)/t;
+      double results = sin(t)/t;
+      if (results != results)
+        return 1.0;
+      else
+        return sin(t)/t;
     }catch(int expn)
     {
       return 1.0;
