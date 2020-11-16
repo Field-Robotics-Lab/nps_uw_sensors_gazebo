@@ -14,7 +14,7 @@
 
 namespace NpsGazeboSonar {
 
-	typedef std::complex<double> Complex;
+	typedef std::complex<float> Complex;
 	typedef std::valarray<Complex> CArray;
 	typedef std::valarray<CArray> CArray2D;
 
