@@ -7,7 +7,7 @@ jobs:
 
     runs-on: ubuntu-18.04
     container: 
-      image: woensugchoi/nps_uw_sensors_nvidia_cuda:current
+      image: woensugchoi/nps_uw_sensors_nvidia_cuda:latest
     steps:
       - run: sudo chown -R `whoami`:`whoami` .
       - uses: actions/checkout@v2
