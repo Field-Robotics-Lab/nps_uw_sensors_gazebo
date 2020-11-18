@@ -644,8 +644,8 @@ cv::Mat NpsGazeboRosImageSonar::ComputeNormalImage(cv::Mat& depth)
 /////////////////////////////////////////////////
 void NpsGazeboRosImageSonar::PublishCameraInfo()
 {
-  ROS_DEBUG_NAMED("depth_camera", "publishing default"
-                << " camera info, then depth camera info");
+  ROS_DEBUG_NAMED("depth_camera",
+    "publishing default camera info, then depth camera info");
   GazeboRosCameraUtils::PublishCameraInfo();
 
   if (this->depth_info_connect_count_ > 0)
