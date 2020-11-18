@@ -62,8 +62,7 @@
           <sourceLevel>220</sourceLevel>
           <maxDistance>10</maxDistance>
           <constantReflectivity>true</constantReflectivity>
-          <beamSkips>0</beamSkips>
-          <raySkips>20</raySkips>
+          <raySkips>10</raySkips>
           <writeLog>true</writeLog>
           <writeFrameInterval>5</writeFrameInterval>
           <!-- This name is prepended to ROS topics -->

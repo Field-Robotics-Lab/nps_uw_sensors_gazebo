@@ -198,11 +198,12 @@ void NpsGazeboRosImageSonar::Load(sensors::SensorPtr _parent,
   else
     this->constMu =
       _sdf->GetElement("constantReflectivity")->Get<bool>();
-  if (!_sdf->HasElement("beamSkips"))
-    this->beamSkips = 0;
-  else
-    this->beamSkips =
-      _sdf->GetElement("beamSkips")->Get<int>();
+  // if (!_sdf->HasElement("beamSkips"))
+  //   this->beamSkips = 0;
+  // else
+  //   this->beamSkips =
+  //     _sdf->GetElement("beamSkips")->Get<int>();
+  this->beamSkips = 0;
   if (!_sdf->HasElement("raySkips"))
     this->raySkips = 0;
   else
@@ -290,10 +291,6 @@ void NpsGazeboRosImageSonar::Load(sensors::SensorPtr _parent,
     this->window[f] = this->window[f]/sqrt(windowSum);
 
   // Sonar corrector preallocation
-  this->rayCorrector = new float*[nRays];
-  for(int i = 0; i < nRays; i+= raySkips)
-      this->rayCorrector[i] = new float[nRays];
-  this->rayCorrectorSum = 0.0;
   this->beamCorrector = new float*[nBeams];
   for(int i = 0; i < nBeams; i+= beamSkips)
       this->beamCorrector[i] = new float[nBeams];
@@ -437,7 +434,7 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
   cv::RNG rng = cv::theRNG();
   rng.fill(rand_image,cv::RNG::NORMAL,0.f,1.f);
 
-  if (this->rayCorrectorSum == 0)
+  if (this->beamCorrectorSum == 0)
     ComputeCorrector();
 
   // For calc time measure
@@ -456,7 +453,7 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
 									hPixelSize,    // _beam_azimuthAngleWidth
 									vPixelSize,    // _beam_elevationAngleWidth
 									hPixelSize,    // _ray_azimuthAngleWidth
-									vPixelSize*((int)(this->nRays/raySkips)-1), // _ray_elevationAngleWidth
+									vPixelSize*(raySkips), // _ray_elevationAngleWidth
 									this->soundSpeed,    // _soundSpeed
 									this->maxDistance,    // _maxDistance
 									this->sourceLevel,    // _sourceLevel
@@ -470,8 +467,6 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
                   this->mu,            // _mu
                   this->attenuation,   // _attenuation
                   this->window,        // _window
-                  this->rayCorrector,      // _rayCorrector
-                  this->rayCorrectorSum,   // _rayCorrectorSum
                   this->beamCorrector,      // _beamCorrector
                   this->beamCorrectorSum);  // _beamCorrectorSum
 
@@ -556,23 +551,6 @@ void NpsGazeboRosImageSonar::ComputeCorrector()
 {
   double hFOV = this->parentSensor->DepthCamera()->HFOV().Radian();
   double hPixelSize = hFOV / this->width;
-  double vFOV = this->parentSensor->DepthCamera()->VFOV().Radian();
-  double vPixelSize = vFOV / this->height;
-  // Ray culling correction precalculation
-  for (size_t ray = 0; ray < nRays; ray += raySkips)
-  {
-    float ray_elevationAngle = (vFOV/2.0) - ray * vPixelSize - vPixelSize/2.0;
-    for (size_t ray_other = 0; ray_other < nRays; ray_other += raySkips)
-    {
-      float ray_elevationAngle_other = (vFOV/2.0) - ray_other * vPixelSize - vPixelSize/2.0;
-      float elevationBeamPattern =
-        unnormalized_sinc(M_PI * 0.884 / vFOV
-        * sin(ray_elevationAngle-ray_elevationAngle_other));
-      this->rayCorrector[ray][ray_other] = elevationBeamPattern;
-      this->rayCorrectorSum += pow(elevationBeamPattern, 2);
-    }
-  }
-  this->rayCorrectorSum = sqrt(this->rayCorrectorSum);
   // Beam culling correction precalculation
   for (size_t beam = 0; beam < nBeams; beam += beamSkips)
   {

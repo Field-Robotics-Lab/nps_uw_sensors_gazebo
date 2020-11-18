@@ -3,6 +3,7 @@
 #include "cuda_runtime.h"
 #include "cuda_runtime_api.h"
 #include "device_launch_parameters.h"
+#include <thrust/complex.h>
 
 #include <stdio.h>
 #include <iostream>
@@ -21,8 +22,12 @@ namespace NpsGazeboSonar {
     /// \brief CUDA Device Check Function Wrapper
 	void check_cuda_init_wrapper(void);
 
+
+    /// \brief Sonar Claculation Init
+	void sonar_calculation_init(int _nBeams, int _nRays,
+								int _beamSkips, int _raySkips, int _nFreq);
+
     /// \brief Sonar Claculation Function Wrapper
-	// void sonar_calculation_wrapper(void);
 	CArray2D sonar_calculation_wrapper( const cv::Mat& depth_image,
 										const cv::Mat& normal_image,
 										const cv::Mat& rand_image,
@@ -45,12 +50,6 @@ namespace NpsGazeboSonar {
 										double _mu,
 										double _attenuation,
 										float *_window,
-										float **_rayCorrector,
-										float _rayCorrectorSum,
 										float **_beamCorrector,
 										float _beamCorrectorSum);
-
-    /// \brief Incident Angle Calculation Function Wrapper
-	void incident_angle_wrapper(float &_angle, float _azimuth,
-								float _elevation, float *_normal);
 }

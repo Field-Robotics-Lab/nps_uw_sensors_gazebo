@@ -2,14 +2,15 @@ clear;clc;
 % close all;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% titletext = 'Full/50m Range/512 Beams/114 Rays';
-% titletext = 'Ray Reduced/50m Range/512 Beams/11 Rays';
+titletext = '  ';
+% titletext = 'Full/60m Range/512 Beams/114 Rays';
+% titletext = 'Ray Reduced/60m Range/512 Beams/11 Rays';
 titletext = 'Ray Range Reduced/10m Range/512 Beams/11 Rays';
 clims_base = [-60 -0];
 nBeams = 512;
 FOV = 90;
-xPlotRange = 10;
-yPlotRange = 5;
+xPlotRange = 9;
+yPlotRange = xPlotRange*cos(45/180*pi());
 filename = "../SonarRawData_000001.csv";
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 bw = 29.9e3; % bandwidth

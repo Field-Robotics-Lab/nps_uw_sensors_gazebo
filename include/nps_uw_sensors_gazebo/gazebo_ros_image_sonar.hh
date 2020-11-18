@@ -125,8 +125,6 @@ namespace gazebo
     private: double mu; // surface reflectivity
     private: float* rangeVector;
     private: float* window;
-    private: float** rayCorrector;
-    private: float rayCorrectorSum;
     private: float** beamCorrector;
     private: float beamCorrectorSum;
     private: int nFreq;
