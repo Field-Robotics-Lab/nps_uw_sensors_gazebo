@@ -31,9 +31,6 @@
  *
  */
 
-
-
-
 #include <assert.h>
 #include <sys/stat.h>
 #include <tf/tf.h>
@@ -433,7 +430,7 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
 
   // Use OpenCV to compute a normal image from the depth image
   cv::Mat depth_image(this->height, this->width,
-                      CV_32FC1, reinterpret_cast<float*>_src);
+                      CV_32FC1, (float*)_src);
   cv::Mat normal_image = this->ComputeNormalImage(depth_image);
   double vFOV = this->parentSensor->DepthCamera()->VFOV().Radian();
   double hFOV = this->parentSensor->DepthCamera()->HFOV().Radian();
