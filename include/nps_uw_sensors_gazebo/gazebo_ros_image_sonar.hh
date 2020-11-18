@@ -46,6 +46,23 @@
 #include <std_msgs/Float64.h>
 #include <image_transport/image_transport.h>
 
+// dynamic reconfigure stuff
+#include <gazebo_plugins/GazeboRosCameraConfig.h>
+#include <dynamic_reconfigure/server.h>
+
+// camera stuff
+#include <gazebo_plugins/gazebo_ros_camera_utils.h>
+
+// boost stuff
+#include <boost/thread/mutex.hpp>
+
+#include <opencv2/core.hpp>
+#include <complex>
+#include <valarray>
+#include <sstream>
+#include <chrono>
+#include <string>
+
 // gazebo stuff
 #include <sdf/Param.hh>
 #include <gazebo/physics/physics.hh>
@@ -55,21 +72,6 @@
 #include <gazebo/sensors/SensorTypes.hh>
 #include <gazebo/plugins/DepthCameraPlugin.hh>
 
-// dynamic reconfigure stuff
-#include <gazebo_plugins/GazeboRosCameraConfig.h>
-#include <dynamic_reconfigure/server.h>
-
-// boost stuff
-#include <boost/thread/mutex.hpp>
-
-// camera stuff
-#include <gazebo_plugins/gazebo_ros_camera_utils.h>
-
-#include <opencv2/core.hpp>
-#include <complex>
-#include <valarray>
-#include <sstream>
-#include <chrono>
 
 namespace gazebo
 {
@@ -109,7 +111,9 @@ namespace gazebo
 
     /// \brief Compute a normal texture and implement sonar model
     private: void ComputeSonarImage(const float *_src);
-    private: double ComputeIncidence(double azimuth, double elevation, cv::Vec3f normal);
+    private: double ComputeIncidence(double azimuth,
+                                     double elevation,
+                                     cv::Vec3f normal);
     private: cv::Mat ComputeNormalImage(cv::Mat& depth);
     private: void ComputeCorrector();
 
@@ -122,7 +126,7 @@ namespace gazebo
     private: bool constMu;
     private: double absorption;
     private: double attenuation;
-    private: double mu; // surface reflectivity
+    private: double mu;  // surface reflectivity
     private: float* rangeVector;
     private: float* window;
     private: float** beamCorrector;
@@ -152,7 +156,8 @@ namespace gazebo
     private: void DepthInfoDisconnect();
     private: common::Time last_depth_image_camera_info_update_time_;
 
-    /// \brief A pointer to the ROS node.  A node will be instantiated if it does not exist.
+    /// \brief A pointer to the ROS node.
+    /// A node will be instantiated if it does not exist.
     private: ros::Publisher depth_image_pub_;
 
     private: sensor_msgs::Image depth_image_msg_;

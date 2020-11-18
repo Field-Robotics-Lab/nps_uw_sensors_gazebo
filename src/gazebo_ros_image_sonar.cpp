@@ -31,10 +31,18 @@
  *
  */
 
-#include <algorithm>
+
+
+
 #include <assert.h>
-#include <string>
 #include <sys/stat.h>
+#include <tf/tf.h>
+#include <sensor_msgs/image_encodings.h>
+#include <cv_bridge/cv_bridge.h>
+
+#include <nps_uw_sensors_gazebo/sonar_calculation_cuda.cuh>
+
+#include <opencv2/core/core.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/bind.hpp>
 
@@ -43,13 +51,9 @@
 #include <sdf/sdf.hh>
 #include <gazebo/sensors/SensorTypes.hh>
 
-#include <tf/tf.h>
-
-#include <sensor_msgs/image_encodings.h>
-#include <cv_bridge/cv_bridge.h>
-#include <opencv2/core/core.hpp>
-
-#include <nps_uw_sensors_gazebo/sonar_calculation_cuda.cuh>
+#include <algorithm>
+#include <string>
+#include <vector>
 
 namespace gazebo
 {
@@ -122,8 +126,10 @@ void NpsGazeboRosImageSonar::Load(sensors::SensorPtr _parent,
   // Make sure the ROS node for Gazebo has already been initialized
   if (!ros::isInitialized())
   {
-    ROS_FATAL_STREAM_NAMED("depth_camera", "A ROS node for Gazebo has not been initialized, unable to load plugin. "
-        << "Load the Gazebo system plugin 'libgazebo_ros_api_plugin.so' in the gazebo_ros package)");
+    ROS_FATAL_STREAM_NAMED("depth_camera", "A ROS node for Gazebo "
+        << "has not been initialized, unable to load plugin. "
+        << "Load the Gazebo system plugin 'libgazebo_ros_api_plugin.so'"
+        << " in the gazebo_ros package)");
     return;
   }
 
@@ -220,7 +226,7 @@ void NpsGazeboRosImageSonar::Load(sensors::SensorPtr _parent,
   //   // nothing yet
 
   // Transmission path properties (typical model used here)
-  this->absorption = 0.0354; // [dB/m]
+  this->absorption = 0.0354;  // [dB/m]
   this->attenuation = this->absorption*log(10)/20.0;
 
   // Range vector
@@ -250,7 +256,8 @@ void NpsGazeboRosImageSonar::Load(sensors::SensorPtr _parent,
   ROS_INFO_STREAM("============   SONAR PLUGIN LOADED   =============");
   ROS_INFO_STREAM("==================================================");
   ROS_INFO_STREAM("Maximum view range  [m] = " << this->maxDistance);
-  ROS_INFO_STREAM("Distance resolution [m] = " << this->soundSpeed*(1.0/(this->nFreq*delta_f)));
+  ROS_INFO_STREAM("Distance resolution [m] = " <<
+                    this->soundSpeed*(1.0/(this->nFreq*delta_f)));
   ROS_INFO_STREAM("# of Beams = " << this->nBeams);
   ROS_INFO_STREAM("# of Rays / Beam (Elevation, Azimuth) = ("
       << ray_nElevationRays << ", " << ray_nAzimuthRays << ")");
@@ -292,12 +299,13 @@ void NpsGazeboRosImageSonar::Load(sensors::SensorPtr _parent,
 
   // Sonar corrector preallocation
   this->beamCorrector = new float*[nBeams];
-  for(int i = 0; i < nBeams; i+= beamSkips)
+  for (int i = 0; i < nBeams; i+= beamSkips)
       this->beamCorrector[i] = new float[nBeams];
   this->beamCorrectorSum = 0.0;
 
   load_connection_ =
-    GazeboRosCameraUtils::OnLoad(boost::bind(&NpsGazeboRosImageSonar::Advertise, this));
+    GazeboRosCameraUtils::OnLoad(
+            boost::bind(&NpsGazeboRosImageSonar::Advertise, this));
   GazeboRosCameraUtils::Load(_parent, _sdf);
 }
 
@@ -381,9 +389,10 @@ void NpsGazeboRosImageSonar::OnNewDepthFrame(const float *_image,
   else
   {
     // Won't this just toggle on and off unnecessarily?
-    // TODO: Find a better way to make sure it runs once after activation
+    // TODO: Find a better way to ensure it runs once after activation
     if (this->depth_image_connect_count_ <= 0)
-      // do this first so there's chance for sensor to run 1 frame after activate
+      // do this first so there's chance for sensor
+      // to run 1 frame after activate
       this->parentSensor->SetActive(true);
   }
 }
@@ -404,7 +413,8 @@ void NpsGazeboRosImageSonar::OnNewImageFrame(const unsigned char *_image,
   if (!this->parentSensor->IsActive())
   {
     if ((*this->image_connect_count_) > 0)
-      // do this first so there's chance for sensor to run 1 frame after activate
+      // do this first so there's chance for sensor
+      // to run 1 frame after activate
       this->parentSensor->SetActive(true);
   }
   else
@@ -422,7 +432,8 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
   this->lock_.lock();
 
   // Use OpenCV to compute a normal image from the depth image
-  cv::Mat depth_image(this->height, this->width, CV_32FC1, (float*)_src);
+  cv::Mat depth_image(this->height, this->width,
+                      CV_32FC1, reinterpret_cast<float*>_src);
   cv::Mat normal_image = this->ComputeNormalImage(depth_image);
   double vFOV = this->parentSensor->DepthCamera()->VFOV().Radian();
   double hFOV = this->parentSensor->DepthCamera()->HFOV().Radian();
@@ -432,7 +443,7 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
   // rand number generator
   cv::Mat rand_image = cv::Mat(depth_image.rows, depth_image.cols, CV_32FC2);
   cv::RNG rng = cv::theRNG();
-  rng.fill(rand_image,cv::RNG::NORMAL,0.f,1.f);
+  rng.fill(rand_image, cv::RNG::NORMAL, 0.f, 1.f);
 
   if (this->beamCorrectorSum == 0)
     ComputeCorrector();
@@ -444,24 +455,24 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
   // ------------------------------------------------//
   CArray2D P_Beams = NpsGazeboSonar::sonar_calculation_wrapper(
                   depth_image,   // cv::Mat& depth_image
-									normal_image,  // cv::Mat& normal_image
-									rand_image,    // cv::Mat& rand_image
+                  normal_image,  // cv::Mat& normal_image
+                  rand_image,    // cv::Mat& rand_image
                   hPixelSize,    // hPixelSize
                   vPixelSize,    // vPixelSize
                   hFOV,          // hFOV
                   vFOV,          // VFOV
-									hPixelSize,    // _beam_azimuthAngleWidth
-									vPixelSize,    // _beam_elevationAngleWidth
-									hPixelSize,    // _ray_azimuthAngleWidth
-									vPixelSize*(raySkips), // _ray_elevationAngleWidth
-									this->soundSpeed,    // _soundSpeed
-									this->maxDistance,    // _maxDistance
-									this->sourceLevel,    // _sourceLevel
-									this->nBeams,        // _nBeams
-									this->nRays,         // _nRays
-									this->beamSkips,     // _beamSkips
-									this->raySkips,      // _raySkips
-									this->sonarFreq,     // _sonarFreq
+                  hPixelSize,    // _beam_azimuthAngleWidth
+                  vPixelSize,    // _beam_elevationAngleWidth
+                  hPixelSize,    // _ray_azimuthAngleWidth
+                  vPixelSize*(raySkips),  // _ray_elevationAngleWidth
+                  this->soundSpeed,    // _soundSpeed
+                  this->maxDistance,   // _maxDistance
+                  this->sourceLevel,   // _sourceLevel
+                  this->nBeams,        // _nBeams
+                  this->nRays,         // _nRays
+                  this->beamSkips,     // _beamSkips
+                  this->raySkips,      // _raySkips
+                  this->sonarFreq,     // _sonarFreq
                   this->bandwidth,     // _bandwidth
                   this->nFreq,         // _nFreq
                   this->mu,            // _mu
@@ -472,15 +483,18 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
 
   // For calc time measure
   auto stop = std::chrono::high_resolution_clock::now();
-  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  ROS_INFO_STREAM("GPU Sonar Frame Calc Time " << duration.count()/10000 << "/100 [s]\n");
+  auto duration = std::chrono::duration_cast<
+                  std::chrono::microseconds>(stop - start);
+  ROS_INFO_STREAM("GPU Sonar Frame Calc Time " <<
+                   duration.count()/10000 << "/100 [s]\n");
 
   // CSV log write stream
   // Each cols corresponds to each beams
   if (this->writeLogFlag)
   {
     this->writeCounter = this->writeCounter + 1;
-    if (this->writeCounter == 1 || this->writeCounter % this->writeInterval == 0)
+    if (this->writeCounter == 1
+        ||this->writeCounter % this->writeInterval == 0)
     {
       double time = this->parentSensor_->LastMeasurementTime().Double();
       std::stringstream filename;
@@ -494,13 +508,16 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
       writeLog << "# Simulation time : " << time << "\n";
       for (size_t i = 0; i < P_Beams[0].size(); i++)
       {
-        writeLog << this->rangeVector[i];  // writing range vector at first column
+        // writing range vector at first column
+        writeLog << this->rangeVector[i];
         for (size_t b = 0; b < nBeams; b += beamSkips)
         {
           if (P_Beams[b][i].imag() > 0)
-            writeLog << "," << P_Beams[b][i].real() << "+" << P_Beams[b][i].imag() << "i";
+            writeLog << "," << P_Beams[b][i].real()
+                     << "+" << P_Beams[b][i].imag() << "i";
           else
-            writeLog << "," << P_Beams[b][i].real() << P_Beams[b][i].imag() << "i";
+            writeLog << "," << P_Beams[b][i].real()
+                     << P_Beams[b][i].imag() << "i";
         }
         writeLog << "\n";
       }
@@ -512,14 +529,18 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
   // ----- End of sonar calculation
 
   // Still publishing the depth image (just because)
-  this->depth_image_msg_.header.frame_id = this->frame_name_;
-  this->depth_image_msg_.header.stamp.sec = this->depth_sensor_update_time_.sec;
-  this->depth_image_msg_.header.stamp.nsec = this->depth_sensor_update_time_.nsec;
+  this->depth_image_msg_.header.frame_id
+        = this->frame_name_;
+  this->depth_image_msg_.header.stamp.sec
+        = this->depth_sensor_update_time_.sec;
+  this->depth_image_msg_.header.stamp.nsec
+        = this->depth_sensor_update_time_.nsec;
   cv_bridge::CvImage img_bridge;
   img_bridge = cv_bridge::CvImage(this->depth_image_msg_.header,
                                   sensor_msgs::image_encodings::TYPE_32FC1,
                                   depth_image);
-  img_bridge.toImageMsg(this->depth_image_msg_); // from cv_bridge to sensor_msgs::Image
+  // from cv_bridge to sensor_msgs::Image
+  img_bridge.toImageMsg(this->depth_image_msg_);
   this->depth_image_pub_.publish(this->depth_image_msg_);
 
   this->lock_.unlock();
@@ -529,7 +550,9 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
 /////////////////////////////////////////////////
 // incidence angle is target's normal angle accounting for the ray's azimuth
 // and elevation
-double NpsGazeboRosImageSonar::ComputeIncidence(double azimuth, double elevation, cv::Vec3f normal)
+double NpsGazeboRosImageSonar::ComputeIncidence(double azimuth,
+                                                double elevation,
+                                                cv::Vec3f normal)
 {
   // ray normal from camera azimuth and elevation
   double camera_x = cos(-azimuth)*cos(elevation);
@@ -554,10 +577,11 @@ void NpsGazeboRosImageSonar::ComputeCorrector()
   // Beam culling correction precalculation
   for (size_t beam = 0; beam < nBeams; beam += beamSkips)
   {
-		float beam_azimuthAngle = -(hFOV/2.0) + beam * hPixelSize + hPixelSize/2.0;
+    float beam_azimuthAngle = -(hFOV/2.0) + beam * hPixelSize + hPixelSize/2.0;
     for (size_t beam_other = 0; beam_other < nBeams; beam_other += beamSkips)
     {
-		  float beam_azimuthAngle_other = -(hFOV/2.0) + beam_other * hPixelSize + hPixelSize/2.0;
+      float beam_azimuthAngle_other
+              = -(hFOV/2.0) + beam_other * hPixelSize + hPixelSize/2.0;
       float azimuthBeamPattern =
         unnormalized_sinc(M_PI * 0.884 / hPixelSize
         * sin(beam_azimuthAngle-beam_azimuthAngle_other));
@@ -590,7 +614,8 @@ cv::Mat NpsGazeboRosImageSonar::ComputeNormalImage(cv::Mat& depth)
 
   cv::Mat no_readings;
   cv::erode(depth == 0, no_readings, cv::Mat(), cv::Point(-1, -1), 2, 1, 1);
-  //cv::dilate(no_readings, no_readings, cv::Mat(), cv::Point(-1, -1), 2, 1, 1);
+  // cv::dilate(no_readings, no_readings, cv::Mat(),
+  //            cv::Point(-1, -1), 2, 1, 1);
   n1.setTo(0, no_readings);
   n2.setTo(0, no_readings);
 
@@ -599,9 +624,9 @@ cv::Mat NpsGazeboRosImageSonar::ComputeNormalImage(cv::Mat& depth)
 
   // NOTE: with different focal lengths, the expression becomes
   // (-dzx*fy, -dzy*fx, fx*fy)
-  images.at(0) = n1;    //for green channel
-  images.at(1) = n2;    //for red channel
-  images.at(2) = 1.0/this->focal_length_*depth; //for blue channel
+  images.at(0) = n1;    // for green channel
+  images.at(1) = n2;    // for red channel
+  images.at(2) = 1.0/this->focal_length_*depth;  // for blue channel
 
   cv::Mat normal_image;
   cv::merge(images, normal_image);
@@ -622,17 +647,22 @@ cv::Mat NpsGazeboRosImageSonar::ComputeNormalImage(cv::Mat& depth)
 /////////////////////////////////////////////////
 void NpsGazeboRosImageSonar::PublishCameraInfo()
 {
-  ROS_DEBUG_NAMED("depth_camera", "publishing default camera info, then depth camera info");
+  ROS_DEBUG_NAMED("depth_camera", "publishing default"
+                << " camera info, then depth camera info");
   GazeboRosCameraUtils::PublishCameraInfo();
 
   if (this->depth_info_connect_count_ > 0)
   {
-    common::Time sensor_update_time = this->parentSensor_->LastMeasurementTime();
+    common::Time sensor_update_time
+          = this->parentSensor_->LastMeasurementTime();
 
     this->sensor_update_time_ = sensor_update_time;
-    if (sensor_update_time - this->last_depth_image_camera_info_update_time_ >= this->update_period_)
+    if (sensor_update_time
+          - this->last_depth_image_camera_info_update_time_
+          >= this->update_period_)
     {
-      this->PublishCameraInfo(this->depth_image_camera_info_pub_);  // , sensor_update_time);
+      this->PublishCameraInfo(this->depth_image_camera_info_pub_);
+      // , sensor_update_time);
       this->last_depth_image_camera_info_update_time_ = sensor_update_time;
     }
   }
