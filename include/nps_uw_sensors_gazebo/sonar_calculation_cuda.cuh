@@ -13,43 +13,43 @@
 #include <opencv2/core.hpp>
 #include <opencv2/core/core.hpp>
 
-namespace NpsGazeboSonar {
+namespace NpsGazeboSonar
+{
 
-	typedef std::complex<float> Complex;
-	typedef std::valarray<Complex> CArray;
-	typedef std::valarray<CArray> CArray2D;
+  typedef std::complex<float> Complex;
+  typedef std::valarray<Complex> CArray;
+  typedef std::valarray<CArray> CArray2D;
 
-    /// \brief CUDA Device Check Function Wrapper
-	void check_cuda_init_wrapper(void);
+  /// \brief CUDA Device Check Function Wrapper
+  void check_cuda_init_wrapper(void);
 
+  /// \brief Sonar Claculation Init
+  void sonar_calculation_init(int _nBeams, int _nRays,
+                              int _beamSkips, int _raySkips, int _nFreq);
 
-    /// \brief Sonar Claculation Init
-	void sonar_calculation_init(int _nBeams, int _nRays,
-								int _beamSkips, int _raySkips, int _nFreq);
-
-    /// \brief Sonar Claculation Function Wrapper
-	CArray2D sonar_calculation_wrapper( const cv::Mat& depth_image,
-										const cv::Mat& normal_image,
-										const cv::Mat& rand_image,
-										double _hPixelSize,
-										double _vPixelSize,
-										double _hFOV,
-										double _vFOV,
-										double _beam_azimuthAngleWidth,
-										double _beam_elevationAngleWidth,
-										double _ray_azimuthAngleWidth,
-										double _ray_elevationAngleWidth,
-										double _soundSpeed,
-										double _maxDistance,
-										double _sourceLevel,
-										int _nBeams, int _nRays,
-										int _beamSkips, int _raySkips,
-										double _sonarFreq,
-										double _bandwidth,
-										int _nFreq,
-										double _mu,
-										double _attenuation,
-										float *_window,
-										float **_beamCorrector,
-										float _beamCorrectorSum);
-}
+  /// \brief Sonar Claculation Function Wrapper
+  CArray2D sonar_calculation_wrapper(const cv::Mat &depth_image,
+                                     const cv::Mat &normal_image,
+                                     const cv::Mat &rand_image,
+                                     double _hPixelSize,
+                                     double _vPixelSize,
+                                     double _hFOV,
+                                     double _vFOV,
+                                     double _beam_azimuthAngleWidth,
+                                     double _beam_elevationAngleWidth,
+                                     double _ray_azimuthAngleWidth,
+                                     double _ray_elevationAngleWidth,
+                                     double _soundSpeed,
+                                     double _maxDistance,
+                                     double _sourceLevel,
+                                     int _nBeams, int _nRays,
+                                     int _beamSkips, int _raySkips,
+                                     double _sonarFreq,
+                                     double _bandwidth,
+                                     int _nFreq,
+                                     double _mu,
+                                     double _attenuation,
+                                     float *_window,
+                                     float **_beamCorrector,
+                                     float _beamCorrectorSum);
+} // namespace NpsGazeboSonar

@@ -57,14 +57,14 @@ ylim(1.02*[-yPlotRange yPlotRange])
 
 % caxis([10 65])
 
-% figure;
-% iPlots = 1:30:nBeams;
-% nPlots = length(1:30:nBeams);
-% for i=2:nPlots-1
-%     for j=1:length(Data(:,1))
-%         temp(j) = Data(j,iPlots(i));
-%     end
-%     subplot(1,nPlots-2,i-1);
-%     plot(abs(temp(1:length(range_vector))),range_vector);
-%     ylim(1.02*[0 xPlotRange])
-% end
+figure;
+iPlots = 1:30:nBeams;
+nPlots = length(1:30:nBeams);
+for i=2:nPlots-1
+    for j=1:length(Data(:,1))
+        temp(j) = Data(j,iPlots(i));
+    end
+    subplot(1,nPlots-2,i-1);
+    plot(abs(temp(1:length(range_vector))),range_vector);
+    ylim(1.02*[0 xPlotRange])
+end
