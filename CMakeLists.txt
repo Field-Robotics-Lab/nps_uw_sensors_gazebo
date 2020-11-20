@@ -42,5 +42,8 @@ install(DIRECTORY launch
         PATTERN "*~" EXCLUDE)
 
 # for Python scripts
-catkin_install_python(PROGRAMS scripts/depth_camera_sonar.py
+catkin_install_python(PROGRAMS
+  scripts/depth_camera_sonar.py
+  src/simple_box_motion.py
+  src/simple_motion.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
