@@ -421,8 +421,9 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
 {
   this->lock_.lock();
 
-  // Use OpenCV to compute a normal image from the depth image
-  cv::Mat depth_image(this->height, this->width, CV_32FC1, (float*)_src);
+  // Use OpenCV to compute a normal image from the depth image9
+  cv::Mat depth_image(this->height, this->width, CV_32FC1,
+                  const_cast<float*>(reinterpret_cast<const float*>(_src)));
   cv::Mat normal_image = this->ComputeNormalImage(depth_image);
   double vFOV = this->parentSensor->DepthCamera()->VFOV().Radian();
   double hFOV = this->parentSensor->DepthCamera()->HFOV().Radian();
