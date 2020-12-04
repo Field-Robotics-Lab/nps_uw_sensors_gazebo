@@ -32,6 +32,7 @@
  */
 
 #include <assert.h>
+#include <limits>
 #include <sys/stat.h>
 #include <tf/tf.h>
 #include <sensor_msgs/image_encodings.h>
@@ -48,6 +49,8 @@
 #include <sdf/sdf.hh>
 #include <gazebo/sensors/SensorTypes.hh>
 
+#include <sensor_msgs/point_cloud2_iterator.h>
+
 #include <algorithm>
 #include <string>
 #include <vector>
@@ -63,6 +66,8 @@ NpsGazeboRosImageSonar::NpsGazeboRosImageSonar() :
   SensorPlugin(), width(0), height(0), depth(0)
 {
   this->depth_image_connect_count_ = 0;
+  this->depth_info_connect_count_ = 0;
+  this->point_cloud_connect_count_ = 0;
   this->last_depth_image_camera_info_update_time_ = common::Time(0);
 
   // for csv write logs
@@ -76,6 +81,7 @@ NpsGazeboRosImageSonar::~NpsGazeboRosImageSonar()
 {
   this->newDepthFrameConnection.reset();
   this->newImageFrameConnection.reset();
+  this->newRGBPointCloudConnection.reset();
 
   this->parentSensor.reset();
   this->depthCamera.reset();
@@ -156,6 +162,18 @@ void NpsGazeboRosImageSonar::Load(sensors::SensorPtr _parent,
   else
     this->depth_image_camera_info_topic_name_ =
       _sdf->GetElement("depthImageCameraInfoTopicName")->Get<std::string>();
+
+  if (!_sdf->HasElement("pointCloudTopicName"))
+    this->point_cloud_topic_name_ = "points";
+  else
+    this->point_cloud_topic_name_ =
+        _sdf->GetElement("pointCloudTopicName")->Get<std::string>();
+
+  if (!_sdf->HasElement("pointCloudCutoff"))
+    this->point_cloud_cutoff_ = 0.4;
+  else
+    this->point_cloud_cutoff_ =
+        _sdf->GetElement("pointCloudCutoff")->Get<double>();
 
   if (!_sdf->HasElement("clip"))
   {
@@ -326,6 +344,14 @@ void NpsGazeboRosImageSonar::Advertise()
   this->depth_image_camera_info_pub_ =
     this->rosnode_->advertise(depth_image_camera_info_ao);
 
+  ros::AdvertiseOptions point_cloud_ao =
+    ros::AdvertiseOptions::create<sensor_msgs::PointCloud2>(
+      this->point_cloud_topic_name_, 1,
+      boost::bind(&NpsGazeboRosImageSonar::PointCloudConnect, this),
+      boost::bind(&NpsGazeboRosImageSonar::PointCloudDisconnect, this),
+      ros::VoidPtr(), &this->camera_queue_);
+  this->point_cloud_pub_ = this->rosnode_->advertise(point_cloud_ao);
+
   // Publisher for sonar image
   this->sonar_image_pub_ =
       this->rosnode_->advertise<frl_sensor_msgs::SonarImage>
@@ -360,6 +386,20 @@ void NpsGazeboRosImageSonar::DepthInfoDisconnect()
   this->depth_info_connect_count_--;
 }
 
+void NpsGazeboRosImageSonar::PointCloudConnect()
+{
+  this->point_cloud_connect_count_++;
+  (*this->image_connect_count_)++;
+  this->parentSensor->SetActive(true);
+}
+
+void NpsGazeboRosImageSonar::PointCloudDisconnect()
+{
+  this->point_cloud_connect_count_--;
+  (*this->image_connect_count_)--;
+  if (this->point_cloud_connect_count_ <= 0)
+    this->parentSensor->SetActive(false);
+}
 
 // Update everything when Gazebo provides a new depth frame (texture)
 void NpsGazeboRosImageSonar::OnNewDepthFrame(const float *_image,
@@ -377,12 +417,17 @@ void NpsGazeboRosImageSonar::OnNewDepthFrame(const float *_image,
   {
     // Deactivate if no subscribers
     if (this->depth_image_connect_count_ <= 0 &&
+        this->point_cloud_connect_count_ <= 0 &&
         (*this->image_connect_count_) <= 0)
     {
       this->parentSensor->SetActive(false);
     }
     else
     {
+      // Generate a point cloud every time regardless of subscriptions
+      // for use in sonar computation (published in function if needed)
+      this->ComputePointCloud(_image);
+
       // Generate depth image data if topics have subscribers
       if (this->depth_image_connect_count_ > 0)
         this->ComputeSonarImage(_image);
@@ -392,7 +437,8 @@ void NpsGazeboRosImageSonar::OnNewDepthFrame(const float *_image,
   {
     // Won't this just toggle on and off unnecessarily?
     // TODO: Find a better way to ensure it runs once after activation
-    if (this->depth_image_connect_count_ <= 0)
+    if (this->depth_image_connect_count_ <= 0 ||
+        this->point_cloud_connect_count_ > 0)
       // do this first so there's chance for sensor
       // to run 1 frame after activate
       this->parentSensor->SetActive(true);
@@ -434,7 +480,7 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
   this->lock_.lock();
   // Use OpenCV to compute a normal image from the depth image9
   cv::Mat depth_image(this->height, this->width, CV_32FC1,
-                  const_cast<float*>(reinterpret_cast<const float*>(_src)));
+                      const_cast<float*>(reinterpret_cast<const float*>(_src)));
   cv::Mat normal_image = this->ComputeNormalImage(depth_image);
   double vFOV = this->parentSensor->DepthCamera()->VFOV().Radian();
   double hFOV = this->parentSensor->DepthCamera()->HFOV().Radian();
@@ -541,7 +587,8 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
   this->sonar_image_msg_.elevation_beamwidth = vPixelSize;
   std::vector<float> azimuth_angles;
   for (size_t beam = 0; beam < nBeams; beam ++)
-    azimuth_angles.push_back(-(hFOV / 2.0) + beam * hPixelSize + hPixelSize / 2.0);
+    azimuth_angles.push_back(-(hFOV / 2.0) + beam * hPixelSize + 
+                             hPixelSize / 2.0);
   this->sonar_image_msg_.azimuth_angles = azimuth_angles;
   std::vector<float> elevation_angles;
   elevation_angles.push_back(vFOV / 2.0); // 1D in elevation
@@ -550,12 +597,13 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
   for (size_t i = 0; i < P_Beams[0].size(); i ++)
     ranges.push_back(rangeVector[i]);
   this->sonar_image_msg_.ranges = ranges;
+
   // this->sonar_image_msg_.is_bigendian = false;
   this->sonar_image_msg_.data_size = sizeof(float)*2 * nFreq * nBeams;
   std::vector<uchar> intensities;
   for (size_t beam = 0; beam < nBeams; beam ++)
     for (size_t f = 0; f < nFreq; f ++)
-      intensities.push_back(static_cast<uchar>((int)(abs(P_Beams[beam][f]))));
+      intensities.push_back(static_cast<uchar>(static_cast<int>(abs(P_Beams[beam][f]))));
   this->sonar_image_msg_.intensities = intensities;
 
   this->sonar_image_pub_.publish(this->sonar_image_msg_);
@@ -577,6 +625,111 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
   // from cv_bridge to sensor_msgs::Image
   img_bridge.toImageMsg(this->depth_image_msg_);
   this->depth_image_pub_.publish(this->depth_image_msg_);
+
+  this->lock_.unlock();
+}
+
+
+void NpsGazeboRosImageSonar::ComputePointCloud(const float *_src)
+{
+  this->lock_.lock();
+
+  this->point_cloud_msg_.header.frame_id = this->frame_name_;
+  this->point_cloud_msg_.header.stamp.sec = this->depth_sensor_update_time_.sec;
+  this->point_cloud_msg_.header.stamp.nsec = this->depth_sensor_update_time_.nsec;
+  this->point_cloud_msg_.width = this->width;
+  this->point_cloud_msg_.height = this->height;
+  this->point_cloud_msg_.row_step = this->point_cloud_msg_.point_step * this->width;
+
+  sensor_msgs::PointCloud2Modifier pcd_modifier(point_cloud_msg_);
+  pcd_modifier.setPointCloud2FieldsByString(2, "xyz", "rgb");
+  pcd_modifier.resize(this->height * this->width);
+
+  // resize if point cloud image to camera parameters if required
+  this->point_cloud_image_.create(this->height, this->width, CV_32FC1);
+
+  sensor_msgs::PointCloud2Iterator<float> iter_x(point_cloud_msg_, "x");
+  sensor_msgs::PointCloud2Iterator<float> iter_y(point_cloud_msg_, "y");
+  sensor_msgs::PointCloud2Iterator<float> iter_z(point_cloud_msg_, "z");
+  sensor_msgs::PointCloud2Iterator<uint8_t> iter_rgb(point_cloud_msg_, "rgb");
+  cv::MatIterator_<float> iter_image = this->point_cloud_image_.begin<float>();
+
+  point_cloud_msg_.is_dense = true;
+
+  float* toCopyFrom = const_cast<float*>(_src);
+  int index = 0;
+
+  double hfov = this->parentSensor->DepthCamera()->HFOV().Radian();
+  double fl = static_cast<double>(this->width) / (2.0 * tan(hfov/2.0));
+
+  for (uint32_t j = 0; j < this->height; j++)
+  {
+    double elevation;
+    if (this->height > 1)
+      elevation = atan2(static_cast<double>(j) -
+                        0.5 * static_cast<double>(this->height-1), fl);
+    else
+      elevation = 0.0;
+
+    for (uint32_t i = 0; i < this->width;
+         i++, ++iter_x, ++iter_y, ++iter_z, ++iter_rgb, ++iter_image)
+    {
+      double azimuth;
+      if (this->width > 1)
+        azimuth = atan2(static_cast<double>(i) -
+                        0.5 * static_cast<double>(this->width-1), fl);
+      else
+        azimuth = 0.0;
+
+      double depth = toCopyFrom[index++];
+
+      // in optical frame hardcoded rotation
+      // rpy(-M_PI/2, 0, -M_PI/2) is built-in
+      // to urdf, where the *_optical_frame should have above relative
+      // rotation from the physical camera *_frame
+      *iter_x = depth * tan(azimuth);
+      *iter_y = depth * tan(elevation);
+      if(depth > this->point_cloud_cutoff_)
+      {
+        *iter_z = depth;
+        *iter_image = sqrt(*iter_x * *iter_x +
+                           *iter_y * *iter_y +
+                           *iter_z * *iter_z);
+      }
+      else  // point in the unseeable range
+      {
+        *iter_x = *iter_y = *iter_z = std::numeric_limits<float>::quiet_NaN();
+        *iter_image = 0.0;
+        point_cloud_msg_.is_dense = false;
+      }
+
+      // put image color data for each point
+      uint8_t*  image_src = static_cast<uint8_t*>(&(this->image_msg_.data[0]));
+      if (this->image_msg_.data.size() == this->height * this->width*3)
+      {
+        // color
+        iter_rgb[0] = image_src[i*3+j*this->width*3+0];
+        iter_rgb[1] = image_src[i*3+j*this->width*3+1];
+        iter_rgb[2] = image_src[i*3+j*this->width*3+2];
+      }
+      else if (this->image_msg_.data.size() == this->height * this->width)
+      {
+        // mono (or bayer?  @todo; fix for bayer)
+        iter_rgb[0] = image_src[i+j*this->width];
+        iter_rgb[1] = image_src[i+j*this->width];
+        iter_rgb[2] = image_src[i+j*this->width];
+      }
+      else
+      {
+        // no image
+        iter_rgb[0] = 0;
+        iter_rgb[1] = 0;
+        iter_rgb[2] = 0;
+      }
+    }
+  }
+  if (this->point_cloud_connect_count_ > 0)
+    this->point_cloud_pub_.publish(this->point_cloud_msg_);
 
   this->lock_.unlock();
 }

@@ -40,6 +40,7 @@
 #include <ros/advertise_options.h>
 
 // ros messages stuff
+#include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/fill_image.h>
@@ -112,6 +113,7 @@ namespace gazebo
 
     /// \brief Compute a normal texture and implement sonar model
     private: void ComputeSonarImage(const float *_src);
+    private: void ComputePointCloud(const float *_src);
     private: double ComputeIncidence(double azimuth,
                                      double elevation,
                                      cv::Vec3f normal);
@@ -151,24 +153,27 @@ namespace gazebo
     /// \brief Keep track of number of connctions for plugin outputs
     private: int depth_image_connect_count_;
     private: int depth_info_connect_count_;
+    private: int point_cloud_connect_count_;
     private: void DepthImageConnect();
     private: void DepthImageDisconnect();
     private: void DepthInfoConnect();
     private: void DepthInfoDisconnect();
+    private: void PointCloudConnect();
+    private: void PointCloudDisconnect();
     private: common::Time last_depth_image_camera_info_update_time_;
 
     /// \brief A pointer to the ROS node.
     /// A node will be instantiated if it does not exist.
     private: ros::Publisher depth_image_pub_;
     private: ros::Publisher sonar_image_pub_;
+    private: ros::Publisher point_cloud_pub_;
 
     private: sensor_msgs::Image depth_image_msg_;
+    private: sensor_msgs::PointCloud2 point_cloud_msg_;
     private: frl_sensor_msgs::SonarImage sonar_image_msg_;
+    private: cv::Mat point_cloud_image_;
 
     std::default_random_engine generator;
-
-    private: void InfoConnect();
-    private: void InfoDisconnect();
 
     using GazeboRosCameraUtils::PublishCameraInfo;
     protected: virtual void PublishCameraInfo();
@@ -176,6 +181,9 @@ namespace gazebo
     /// \brief image where each pixel contains the depth information
     private: std::string depth_image_topic_name_;
     private: std::string depth_image_camera_info_topic_name_;
+    private: std::string point_cloud_topic_name_;
+
+    private: double point_cloud_cutoff_;
 
     // overload with our own
     private: common::Time depth_sensor_update_time_;
@@ -192,6 +200,34 @@ namespace gazebo
 
     private: event::ConnectionPtr newDepthFrameConnection;
     private: event::ConnectionPtr newImageFrameConnection;
+    private: event::ConnectionPtr newRGBPointCloudConnection;
+
+    // A couple of "convenience" functions for computing azimuth & elevation
+    private: inline double Azimuth(int col)
+    {
+      double hfov = this->parentSensor->DepthCamera()->HFOV().Radian();
+      double fl = static_cast<double>(this->width) / (2.0 * tan(hfov/2.0));
+      double azimuth;
+      if (this->width > 1)
+        azimuth = atan2(static_cast<double>(col) -
+                        0.5 * static_cast<double>(this->width-1), fl);
+      else
+        azimuth = 0.0;
+      return azimuth;
+    }
+
+    private: inline double Elevation(int row)
+    {
+      double hfov = this->parentSensor->DepthCamera()->HFOV().Radian();
+      double fl = static_cast<double>(this->width) / (2.0 * tan(hfov/2.0));
+      double elevation;
+      if (this->height > 1)
+        elevation = atan2(static_cast<double>(row) -
+                          0.5 * static_cast<double>(this->height-1), fl);
+      else
+        elevation = 0.0;
+      return elevation;
+    }
   };
 
   ///////////////////////////////////////////
