@@ -13,7 +13,10 @@ enable_language(CUDA CXX)
 
 # add_definitions(-std=c++11)
 
-find_package(catkin REQUIRED tf gazebo_plugins)
+find_package(catkin REQUIRED COMPONENTS
+ tf
+ gazebo_plugins
+ frl_sensor_msgs)
 
 find_package(gazebo REQUIRED)
 find_package(roscpp REQUIRED)
@@ -34,7 +37,12 @@ link_directories(${GAZEBO_LIBRARY_DIRS})
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GAZEBO_CXX_FLAGS}")
 set(SENSOR_ROS_PLUGINS_LIST "")
 
-catkin_package()
+catkin_package(
+  INCLUDE_DIRS
+  LIBRARIES
+  CATKIN_DEPENDS
+  frl_sensor_msgs
+ )
 
 ## Plugins
 
@@ -56,7 +64,7 @@ list(APPEND SENSOR_ROS_PLUGINS_LIST nps_image_sonar_ros_plugin)
 #target_link_libraries(nps_gazebo_ros_image_sonar_plugin
 #                      DepthCameraPlugin ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES})
 
-#add_library(nps_gazebo_ros_gpu_sonar_single_beam_plugin 
+#add_library(nps_gazebo_ros_gpu_sonar_single_beam_plugin
 #            src/nps_gazebo_ros_gpu_sonar_single_beam.cpp)
 #target_link_libraries(nps_gazebo_ros_gpu_sonar_single_beam_plugin
 #                      GpuRayPlugin ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES})

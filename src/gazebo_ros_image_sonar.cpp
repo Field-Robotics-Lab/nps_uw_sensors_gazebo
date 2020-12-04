@@ -325,6 +325,11 @@ void NpsGazeboRosImageSonar::Advertise()
         ros::VoidPtr(), &this->camera_queue_);
   this->depth_image_camera_info_pub_ =
     this->rosnode_->advertise(depth_image_camera_info_ao);
+
+  // Publisher for sonar image
+  this->sonar_image_pub_ =
+      this->rosnode_->advertise<frl_sensor_msgs::SonarImage>
+      ("sonar_image", 10);
 }
 
 
@@ -522,7 +527,41 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
       this->writeNumber = this->writeNumber + 1;
     }
   }
-  // ----- End of sonar calculation
+
+  // Sonar image ROS msg
+  this->sonar_image_msg_.header.frame_id
+        = this->frame_name_.c_str();
+  this->sonar_image_msg_.header.stamp.sec
+        = this->depth_sensor_update_time_.sec;
+  this->sonar_image_msg_.header.stamp.nsec
+        = this->depth_sensor_update_time_.nsec;
+  this->sonar_image_msg_.frequency = this->sonarFreq;
+  this->sonar_image_msg_.sound_speed = this->soundSpeed;
+  this->sonar_image_msg_.azimuth_beamwidth = hPixelSize;
+  this->sonar_image_msg_.elevation_beamwidth = vPixelSize;
+  std::vector<float> azimuth_angles;
+  for (size_t beam = 0; beam < nBeams; beam ++)
+    azimuth_angles.push_back(-(hFOV / 2.0) + beam * hPixelSize + hPixelSize / 2.0);
+  this->sonar_image_msg_.azimuth_angles = azimuth_angles;
+  std::vector<float> elevation_angles;
+  elevation_angles.push_back(vFOV / 2.0); // 1D in elevation
+  this->sonar_image_msg_.elevation_angles = elevation_angles;
+  std::vector<float> ranges;
+  for (size_t i = 0; i < P_Beams[0].size(); i ++)
+    ranges.push_back(rangeVector[i]);
+  this->sonar_image_msg_.ranges = ranges;
+  // this->sonar_image_msg_.is_bigendian = false;
+  this->sonar_image_msg_.data_size = sizeof(float)*2 * nFreq * nBeams;
+  std::vector<uchar> intensities;
+  for (size_t beam = 0; beam < nBeams; beam ++)
+    for (size_t f = 0; f < nFreq; f ++)
+      intensities.push_back(static_cast<uchar>((int)(abs(P_Beams[beam][f]))));
+  this->sonar_image_msg_.intensities = intensities;
+
+  this->sonar_image_pub_.publish(this->sonar_image_msg_);
+
+  // ---------------------------------------- End of sonar calculation
+
 
   // Still publishing the depth image (just because)
   this->depth_image_msg_.header.frame_id

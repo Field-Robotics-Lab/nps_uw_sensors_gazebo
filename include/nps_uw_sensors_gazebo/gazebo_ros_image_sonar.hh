@@ -45,6 +45,7 @@
 #include <sensor_msgs/fill_image.h>
 #include <std_msgs/Float64.h>
 #include <image_transport/image_transport.h>
+#include <frl_sensor_msgs/SonarImage.h>
 
 // dynamic reconfigure stuff
 #include <gazebo_plugins/GazeboRosCameraConfig.h>
@@ -159,8 +160,10 @@ namespace gazebo
     /// \brief A pointer to the ROS node.
     /// A node will be instantiated if it does not exist.
     private: ros::Publisher depth_image_pub_;
+    private: ros::Publisher sonar_image_pub_;
 
     private: sensor_msgs::Image depth_image_msg_;
+    private: frl_sensor_msgs::SonarImage sonar_image_msg_;
 
     std::default_random_engine generator;
 
