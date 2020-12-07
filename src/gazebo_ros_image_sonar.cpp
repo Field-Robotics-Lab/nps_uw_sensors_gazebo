@@ -219,19 +219,12 @@ void NpsGazeboRosImageSonar::Load(sensors::SensorPtr _parent,
   else
     this->constMu =
       _sdf->GetElement("constantReflectivity")->Get<bool>();
-  // if (!_sdf->HasElement("beamSkips"))
-  //   this->beamSkips = 0;
-  // else
-  //   this->beamSkips =
-  //     _sdf->GetElement("beamSkips")->Get<int>();
-  this->beamSkips = 0;
   if (!_sdf->HasElement("raySkips"))
     this->raySkips = 0;
   else
     this->raySkips =
       _sdf->GetElement("raySkips")->Get<int>();
   // Configure skips
-  if (this->beamSkips == 0) this->beamSkips = 1;
   if (this->raySkips == 0) this->raySkips = 1;
 
   // --- Calculate common sonar parameters ---- //
@@ -246,9 +239,10 @@ void NpsGazeboRosImageSonar::Load(sensors::SensorPtr _parent,
 
   // Range vector
   const float max_T = this->maxDistance*2.0/this->soundSpeed;
-  const float delta_f = 1.0/max_T;
+  float delta_f = 1.0/max_T;
   const float delta_t = 1.0/this->bandwidth;
   this->nFreq = ceil(this->bandwidth/delta_f);
+  delta_f = this->bandwidth/this->nFreq;
   const int nTime = nFreq;
   this->rangeVector = new float[nTime];
   for (int i = 0; i < nTime; i++)
@@ -276,8 +270,8 @@ void NpsGazeboRosImageSonar::Load(sensors::SensorPtr _parent,
   ROS_INFO_STREAM("# of Beams = " << this->nBeams);
   ROS_INFO_STREAM("# of Rays / Beam (Elevation, Azimuth) = ("
       << ray_nElevationRays << ", " << ray_nAzimuthRays << ")");
-  ROS_INFO_STREAM("Calculation skips (Elevation, Azimuth) = ("
-      << this->raySkips << ", " << this->beamSkips << ")");
+  ROS_INFO_STREAM("Calculation skips (Elevation) = "
+      << this->raySkips );
   ROS_INFO_STREAM("# of Time data / Beam = " << this->nFreq);
   ROS_INFO_STREAM("==================================================");
   ROS_INFO_STREAM("");
@@ -314,7 +308,7 @@ void NpsGazeboRosImageSonar::Load(sensors::SensorPtr _parent,
 
   // Sonar corrector preallocation
   this->beamCorrector = new float*[nBeams];
-  for (int i = 0; i < nBeams; i+= beamSkips)
+  for (int i = 0; i < nBeams; i++)
       this->beamCorrector[i] = new float[nBeams];
   this->beamCorrectorSum = 0.0;
 
@@ -479,8 +473,10 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
 {
   this->lock_.lock();
   // Use OpenCV to compute a normal image from the depth image9
-  cv::Mat depth_image(this->height, this->width, CV_32FC1,
-                      const_cast<float*>(reinterpret_cast<const float*>(_src)));
+  // cv::Mat depth_image(this->height, this->width, CV_32FC1,
+  //                     const_cast<float*>(reinterpret_cast<const float*>(_src)));
+  cv::Mat depth_image = this->point_cloud_image_;
+
   cv::Mat normal_image = this->ComputeNormalImage(depth_image);
   double vFOV = this->parentSensor->DepthCamera()->VFOV().Radian();
   double hFOV = this->parentSensor->DepthCamera()->HFOV().Radian();
@@ -517,7 +513,6 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
                   this->sourceLevel,   // _sourceLevel
                   this->nBeams,        // _nBeams
                   this->nRays,         // _nRays
-                  this->beamSkips,     // _beamSkips
                   this->raySkips,      // _raySkips
                   this->sonarFreq,     // _sonarFreq
                   this->bandwidth,     // _bandwidth
@@ -557,7 +552,7 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
       {
         // writing range vector at first column
         writeLog << this->rangeVector[i];
-        for (size_t b = 0; b < nBeams; b += beamSkips)
+        for (size_t b = 0; b < nBeams; b ++)
         {
           if (P_Beams[b][i].imag() > 0)
             writeLog << "," << P_Beams[b][i].real()
@@ -584,11 +579,12 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
   this->sonar_image_msg_.frequency = this->sonarFreq;
   this->sonar_image_msg_.sound_speed = this->soundSpeed;
   this->sonar_image_msg_.azimuth_beamwidth = hPixelSize;
-  this->sonar_image_msg_.elevation_beamwidth = vPixelSize;
+  this->sonar_image_msg_.elevation_beamwidth = hPixelSize*this->nRays;
   std::vector<float> azimuth_angles;
+  double fl = static_cast<double>(width) / (2.0 * tan(hFOV/2.0));
   for (size_t beam = 0; beam < nBeams; beam ++)
-    azimuth_angles.push_back(-(hFOV / 2.0) + beam * hPixelSize + 
-                             hPixelSize / 2.0);
+    azimuth_angles.push_back(atan2(static_cast<double>(beam) -
+                    0.5 * static_cast<double>(width-1), fl));
   this->sonar_image_msg_.azimuth_angles = azimuth_angles;
   std::vector<float> elevation_angles;
   elevation_angles.push_back(vFOV / 2.0); // 1D in elevation
@@ -763,10 +759,10 @@ void NpsGazeboRosImageSonar::ComputeCorrector()
   double hFOV = this->parentSensor->DepthCamera()->HFOV().Radian();
   double hPixelSize = hFOV / this->width;
   // Beam culling correction precalculation
-  for (size_t beam = 0; beam < nBeams; beam += beamSkips)
+  for (size_t beam = 0; beam < nBeams; beam ++)
   {
     float beam_azimuthAngle = -(hFOV/2.0) + beam * hPixelSize + hPixelSize/2.0;
-    for (size_t beam_other = 0; beam_other < nBeams; beam_other += beamSkips)
+    for (size_t beam_other = 0; beam_other < nBeams; beam_other ++)
     {
       float beam_azimuthAngle_other
               = -(hFOV/2.0) + beam_other * hPixelSize + hPixelSize/2.0;

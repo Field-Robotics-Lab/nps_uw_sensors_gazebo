@@ -74,6 +74,21 @@ __device__ __host__ float unnormalized_sinc(float t)
   else
     return sin(t) / t;
 }
+__device__ __host__ float atan2_cu(float dx, float dy)
+{
+  if (dx > 0 && dy > 0)
+    return atan(dy/dx);
+  else if (dx > 0 && dy < 0)
+    return atan(dy/dx) + M_PI;
+  else if (dx < 0 && dy < 0)
+    return atan(dy/dx) - M_PI;
+  else if (dx > 0 && dy == 0)
+    return M_PI/2.0;
+  else if (dx < 0 && dy == 0)
+    return -M_PI/2.0;
+  else
+    return 0.0;
+}
 
 ///////////////////////////////////////////////////////////////////////////
 template <typename T>
@@ -155,7 +170,7 @@ __global__ void sonar_calculation(thrust::complex<float> *P_Beams,
                                   float soundSpeed,
                                   float sourceTerm,
                                   int nBeams, int nRays,
-                                  int beamSkips, int raySkips,
+                                  int raySkips,
                                   float sonarFreq, float delta_f,
                                   int nFreq, float bandwidth,
                                   float mu_sqrt, float attenuation,
@@ -166,20 +181,22 @@ __global__ void sonar_calculation(thrust::complex<float> *P_Beams,
   const int ray = blockIdx.y * blockDim.y + threadIdx.y;
 
   //Only valid threads perform memory I/O
-  if ((beam < width) && (ray < height) &&
-      (beam % beamSkips == 0) && (ray % raySkips == 0))
+  if ((beam < width) && (ray < height) && (ray % raySkips == 0))
   {
     // Location of the image pixel
     const int depth_index = ray * depth_image_step / sizeof(float) + beam;
     const int normal_index = ray * normal_image_step / sizeof(float) + (3 * beam);
     const int rand_index = ray * rand_image_step / sizeof(float) + (2 * beam);
     // Input parameters for ray processing
-    float ray_azimuthAngle = -(hFOV / 2.0) + beam * hPixelSize + hPixelSize / 2.0;
-    float ray_elevationAngle = (vFOV / 2.0) - ray * vPixelSize - vPixelSize / 2.0;
     float distance = depth_image[depth_index] * 1.0f;
     float normal[3] = {normal_image[normal_index],
                        normal_image[normal_index + 1],
                        normal_image[normal_index + 2]};
+    double fl = static_cast<double>(width) / (2.0 * tan(hFOV/2.0));
+    float ray_azimuthAngle = atan2(static_cast<double>(beam) -
+                      0.5 * static_cast<double>(width-1), fl);
+    float ray_elevationAngle = atan2(static_cast<double>(ray) -
+                      0.5 * static_cast<double>(height-1), fl);
 
     // Beam pattern
     // float azimuthBeamPattern = abs(unnormalized_sinc(M_PI * 0.884
@@ -212,9 +229,9 @@ __global__ void sonar_calculation(thrust::complex<float> *P_Beams,
     {
       float freq;
       if (nFreq % 2 == 0)
-        freq = delta_f * (-nFreq / 2 + f + 1);
+        freq = delta_f * (-nFreq / 2.0 + f*1.0f + 1.0);
       else
-        freq = delta_f * (-(nFreq - 1) / 2 + f + 1);
+        freq = delta_f * (-(nFreq - 1) / 2.0 + f*1.0f + 1.0);
       float kw = 2.0 * M_PI * freq / soundSpeed; // wave vector
       thrust::complex<float> unitImag = thrust::complex<float>(0.0, 1.0);
       thrust::complex<float> complexDistance = thrust::complex<float>(0.0, distance);
@@ -260,16 +277,6 @@ namespace NpsGazeboSonar
     }
   }
 
-  // Sonar Claculation Init
-  // void sonar_calculation_init(
-  // 	int _nBeams, int _nRays, int _beamSkips, int _raySkips, int _nFreq)
-  // {
-  // 	P_Beams_N = (int)(_nBeams/_beamSkips) * (int)(_nRays/_raySkips) * (_nFreq + 1);
-  // 	P_Beams_Bytes = sizeof(thrust::complex<float>) * P_Beams_N;
-  // 	SAFE_CALL(cudaMallocHost((void**)&P_Beams,P_Beams_Bytes), "CUDA Malloc Failed");
-  // 	SAFE_CALL(cudaMalloc((void**)&d_P_Beams,P_Beams_Bytes), "CUDA Malloc Failed");
-  // }
-
   // Sonar Claculation Function Wrapper
   CArray2D sonar_calculation_wrapper(const cv::Mat &depth_image,
                                      const cv::Mat &normal_image,
@@ -286,7 +293,7 @@ namespace NpsGazeboSonar
                                      double _maxDistance,
                                      double _sourceLevel,
                                      int _nBeams, int _nRays,
-                                     int _beamSkips, int _raySkips,
+                                     int _raySkips,
                                      double _sonarFreq,
                                      double _bandwidth,
                                      int _nFreq,
@@ -316,7 +323,6 @@ namespace NpsGazeboSonar
     const int nBeams = _nBeams;
     const int nRays = _nRays;
     const int nFreq = _nFreq;
-    const int beamSkips = _beamSkips;
     const int raySkips = _raySkips;
 
     //#######################################################//
@@ -376,7 +382,7 @@ namespace NpsGazeboSonar
     // Pixcel array
     thrust::complex<float> *P_Beams;
     thrust::complex<float> *d_P_Beams;
-    const int P_Beams_N = (int)(nBeams / beamSkips) * (int)(nRays / raySkips) * (nFreq + 1);
+    const int P_Beams_N = nBeams * (int)(nRays / raySkips) * (nFreq + 1);
     const int P_Beams_Bytes = sizeof(thrust::complex<float>) * P_Beams_N;
     SAFE_CALL(cudaMallocHost((void **)&P_Beams, P_Beams_Bytes), "CUDA Malloc Failed");
     SAFE_CALL(cudaMalloc((void **)&d_P_Beams, P_Beams_Bytes), "CUDA Malloc Failed");
@@ -402,7 +408,7 @@ namespace NpsGazeboSonar
                                        soundSpeed,
                                        sourceTerm,
                                        nBeams, nRays,
-                                       beamSkips, raySkips,
+                                       raySkips,
                                        sonarFreq, delta_f,
                                        nFreq, bandwidth,
                                        mu_sqrt, attenuation,
@@ -457,7 +463,7 @@ namespace NpsGazeboSonar
 
     dim3 dimGrid_Ray((nFreq + BLOCK_SIZE - 1) / BLOCK_SIZE);
 
-    for (size_t beam = 0; beam < nBeams; beam += beamSkips)
+    for (size_t beam = 0; beam < nBeams; beam ++)
     {
       for (size_t ray = 0; ray < (int)(nRays / raySkips); ray++)
       {
@@ -515,7 +521,7 @@ namespace NpsGazeboSonar
     float *P_Beams_Cor_real_tmp, *P_Beams_Cor_imag_tmp;
     float *d_P_Beams_Cor_real, *d_P_Beams_Cor_imag;
     float *d_P_Beams_Cor_F_real, *d_P_Beams_Cor_F_imag;
-    const int P_Beams_Cor_N = (int)(nBeams / beamSkips) * (nFreq);
+    const int P_Beams_Cor_N = nBeams * nFreq;
     const int P_Beams_Cor_Bytes = sizeof(float) * P_Beams_Cor_N;
     cudaMallocHost((void **)&P_Beams_Cor_real, P_Beams_Cor_Bytes);
     cudaMallocHost((void **)&P_Beams_Cor_imag, P_Beams_Cor_Bytes);
@@ -529,20 +535,20 @@ namespace NpsGazeboSonar
     SAFE_CALL(cudaMalloc((void **)&d_P_Beams_Cor_F_imag, P_Beams_Cor_Bytes), "CUDA Malloc Failed");
 
     float *beamCorrector_lin, *d_beamCorrector_lin;
-    const int beamCorrector_lin_N = (int)(nBeams / beamSkips) * ((int)(nBeams / beamSkips));
+    const int beamCorrector_lin_N = nBeams * nBeams;
     const int beamCorrector_lin_Bytes = sizeof(float) * beamCorrector_lin_N;
     cudaMallocHost((void **)&beamCorrector_lin, beamCorrector_lin_Bytes);
     SAFE_CALL(cudaMalloc((void **)&d_beamCorrector_lin, beamCorrector_lin_Bytes), "CUDA Malloc Failed");
 
     // (nfreq x nBeams) * (nBeams x nBeams) = (nfreq x nBeams)
-    for (size_t beam = 0; beam < nBeams; beam += beamSkips)
+    for (size_t beam = 0; beam < nBeams; beam ++)
     {
       for (size_t f = 0; f < nFreq; f++)
       {
         P_Beams_Cor_real[f * nBeams + beam] = P_Beams_F[beam][f].real();
         P_Beams_Cor_imag[f * nBeams + beam] = P_Beams_F[beam][f].imag();
       }
-      for (size_t beam_other = 0; beam_other < nBeams; beam_other += beamSkips)
+      for (size_t beam_other = 0; beam_other < nBeams; beam_other ++)
         beamCorrector_lin[beam_other * nBeams + beam] = beamCorrector[beam][beam_other];
     }
 
@@ -591,7 +597,7 @@ namespace NpsGazeboSonar
     SAFE_CALL(cudaMalloc((void **)&d_diag_ptr, diag_ptr_Bytes), "CUDA Malloc Failed");
 
     // (nBeams x nfreq) * (1 x nFreq) = (nBeams x nFreq)
-    for (size_t beam = 0; beam < nBeams; beam += beamSkips)
+    for (size_t beam = 0; beam < nBeams; beam ++)
     {
       for (size_t f = 0; f < nFreq; f++)
       { // Transpose
@@ -633,7 +639,7 @@ namespace NpsGazeboSonar
     SAFE_CALL(cudaDeviceSynchronize(), "Kernel Launch Failed");
 
     // Return
-    for (size_t beam = 0; beam < nBeams; beam += beamSkips)
+    for (size_t beam = 0; beam < nBeams; beam ++)
       for (size_t f = 0; f < nFreq; f++)
         P_Beams_F[beam][f] =
             Complex(P_Beams_Cor_F_real[beam * nFreq + f] / beamCorrectorSum,

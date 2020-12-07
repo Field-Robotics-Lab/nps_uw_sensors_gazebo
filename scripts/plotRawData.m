@@ -1,5 +1,5 @@
 clear;clc;
-% close all;
+close all;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 titletext = '  ';
@@ -8,8 +8,9 @@ titletext = '  ';
 titletext = 'Ray Range Reduced/10m Range/512 Beams/11 Rays';
 clims_base = [-60 -0];
 nBeams = 512;
-FOV = 90;
-xPlotRange = 9;
+FOV = 90/180*pi();
+maxRange = 10;
+xPlotRange = 10;
 yPlotRange = xPlotRange*cos(45/180*pi());
 filename = "../SonarRawData_000001.csv";
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -29,13 +30,13 @@ for i=2:plotSkips:nBeams+1
     end
 end
 
-delta_t = 1/bw;
-vPixelSize = FOV / nBeams;
-sonarBeams = (-(FOV/2.0) + ((1:nBeams)-1) * vPixelSize - vPixelSize/2.0);
-
 range_vector = Data(:,1)';
-x = range_vector.*cos(sonarBeams'/180*pi);
-y = range_vector.*sin(sonarBeams'/180*pi);
+
+fl = nBeams / (2.0 * tan(FOV/2.0));
+sonarBeams = atan2( ((1:nBeams)-1) - 0.5 *(nBeams-1), fl);
+
+x = range_vector.*cos(sonarBeams');
+y = range_vector.*sin(sonarBeams');
 
 figure;
 scatterPointSize = 8;
@@ -54,6 +55,7 @@ colormap(hot)
 set(gca,'Color','k')
 xlim(1.02*[0 xPlotRange])
 ylim(1.02*[-yPlotRange yPlotRange])
+% axis equal;
 
 % caxis([10 65])
 
