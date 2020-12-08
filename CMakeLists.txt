@@ -8,11 +8,6 @@ set(CMAKE_CUDA_COMPILER "nvcc")
 
 enable_language(CUDA CXX)
 
-# include(CheckLanguage)
-# check_language(CUDA)
-
-# add_definitions(-std=c++11)
-
 find_package(catkin REQUIRED COMPONENTS
  tf
  gazebo_plugins
@@ -25,6 +20,7 @@ find_package(OpenCV)
 
 find_package(CUDA REQUIRED)
 include_directories(${CUDA_INCLUDE_DIRS})
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -arch=sm_60")
 
 include_directories(${roscpp_INCLUDE_DIRS})
 include_directories(${std_msgs_INCLUDE_DIRS})

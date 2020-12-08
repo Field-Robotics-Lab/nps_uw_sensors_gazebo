@@ -19,7 +19,7 @@
 #define GAZEBO_ROS_IMAGE_SONAR_HH
 
 // Half precision
-#include <cuda_fp16.h>
+#include "cuda_fp16.h"
 
 // ros stuff
 #include <ros/ros.h>
@@ -64,7 +64,7 @@
 
 namespace gazebo
 {
-  typedef std::complex<float> Complex;
+  typedef std::complex<int> Complex;
   typedef std::valarray<Complex> CArray;
   typedef std::valarray<CArray> CArray2D;
 

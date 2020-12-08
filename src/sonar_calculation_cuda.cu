@@ -83,6 +83,34 @@ __device__ float compute_incidence(float azimuth, float elevation, float *normal
   return M_PI - acosf(dot_product);
 }
 
+__device__ half compute_incidence(half azimuth, half elevation, half *normal)
+{
+  // ray normal from camera azimuth and elevation
+  half camera_x = hcos(-azimuth) * hcos(elevation);
+  half camera_y = hsin(-azimuth) * hcos(elevation);
+  half camera_z = hsin(elevation);
+  half ray_normal[3] = {camera_x, camera_y, camera_z};
+
+  // target normal with axes compensated to camera axes
+  //   float norm = sqrt(pow(normal[0],2) + pow(normal[1],2) + pow(normal[2],2));
+  //   float target_normal[3] = {normal[2]/norm, -normal[0]/norm, -normal[1]/norm};
+  half target_normal[3] = {normal[2], -normal[0], -normal[1]};
+
+  // dot product
+  half dot_product = __hmul(ray_normal[0], target_normal[0])
+                      + __hmul(ray_normal[1],target_normal[1])
+                      + __hmul(ray_normal[2],target_normal[2]);
+
+  if (dot_product < __float2half(-1.0f))
+    dot_product = __float2half(-1.0f);
+  if (dot_product > __float2half(1.0f))
+    dot_product = __float2half(1.0f);
+
+  //   printf("TEST    %f \n", dot_product);
+
+  return __float2half(M_PI) - __float2half(acosf(__half2float(dot_product)));
+}
+
 ///////////////////////////////////////////////////////////////////////////
 __device__ __host__ float unnormalized_sinc(float t)
 {
@@ -91,20 +119,12 @@ __device__ __host__ float unnormalized_sinc(float t)
   else
     return sin(t) / t;
 }
-__device__ __host__ float atan2_cu(float dx, float dy)
+__device__ half unnormalized_sinc(half t)
 {
-  if (dx > 0 && dy > 0)
-    return atan(dy/dx);
-  else if (dx > 0 && dy < 0)
-    return atan(dy/dx) + M_PI;
-  else if (dx < 0 && dy < 0)
-    return atan(dy/dx) - M_PI;
-  else if (dx > 0 && dy == 0)
-    return M_PI/2.0;
-  else if (dx < 0 && dy == 0)
-    return -M_PI/2.0;
+  if (t < __float2half((float)1E-8) && t > __float2half((float)-1E-8))
+    return __float2half(1.0);
   else
-    return 0.0;
+    return __hdiv(hsin(t), t);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -167,7 +187,7 @@ __global__ void gpu_diag_matrix_mult(float *Val, int *RowPtr, float *diagVals, i
 
 ///////////////////////////////////////////////////////////////////////////
 // Sonar Claculation Function
-__global__ void sonar_calculation(thrust::complex<float> *P_Beams,
+__global__ void sonar_calculation(thrust::complex<int> *P_Beams,
                                   float *depth_image,
                                   float *normal_image,
                                   int width,
@@ -205,41 +225,43 @@ __global__ void sonar_calculation(thrust::complex<float> *P_Beams,
     const int normal_index = ray * normal_image_step / sizeof(float) + (3 * beam);
     const int rand_index = ray * rand_image_step / sizeof(float) + (2 * beam);
     // Input parameters for ray processing
-    float distance = depth_image[depth_index] * 1.0f;
-    float normal[3] = {normal_image[normal_index],
-                       normal_image[normal_index + 1],
-                       normal_image[normal_index + 2]};
+    half distance = __float2half(depth_image[depth_index] * 1.0f);
+    half normal[3] = {__float2half(normal_image[normal_index]),
+                       __float2half(normal_image[normal_index + 1]),
+                       __float2half(normal_image[normal_index + 2])};
     double fl = static_cast<double>(width) / (2.0 * tan(hFOV/2.0));
-    float ray_azimuthAngle = atan2(static_cast<double>(beam) -
-                      0.5 * static_cast<double>(width-1), fl);
-    float ray_elevationAngle = atan2(static_cast<double>(ray) -
-                      0.5 * static_cast<double>(height-1), fl);
+    half ray_azimuthAngle = __float2half(atan2(static_cast<double>(beam) -
+                      0.5 * static_cast<double>(width-1), fl));
+    half ray_elevationAngle = __float2half(atan2(static_cast<double>(ray) -
+                      0.5 * static_cast<double>(height-1), fl));
 
     // Beam pattern
     // float azimuthBeamPattern = abs(unnormalized_sinc(M_PI * 0.884
     // 				/ ray_azimuthAngleWidth * sin(ray_azimuthAngle)));
     // only one column of rays for each beam at beam center
-    float azimuthBeamPattern = 1.0;
-    float elevationBeamPattern = unnormalized_sinc(M_PI * 0.884 / vFOV * sin(ray_elevationAngle));
+    half azimuthBeamPattern = __float2half(1.0f);
+    half elevationBeamPattern = unnormalized_sinc(__hmul(__hdiv(__hmul(__float2half(M_PI),__float2half(0.884)), __float2half(vFOV)), hsin(ray_elevationAngle)));
     // incidence angle
-    float incidence = compute_incidence(ray_azimuthAngle, ray_elevationAngle, normal);
+    half incidence = compute_incidence(ray_azimuthAngle, ray_elevationAngle, normal);
 
     // ----- Point scattering model ------ //
     // Gaussian noise generated using opencv RNG
-    float xi_z = rand_image[rand_index];
-    float xi_y = rand_image[rand_index + 1];
+    half xi_z = __float2half(rand_image[rand_index]);
+    half xi_y = __float2half(rand_image[rand_index + 1]);
 
     // Calculate amplitude
-    thrust::complex<float> randomAmps = thrust::complex<float>(xi_z / sqrt(2.0), xi_y / sqrt(2.0));
-    thrust::complex<float> lambert_sqrt =
-        thrust::complex<float>(mu_sqrt * cos(incidence), 0.0);
-    thrust::complex<float> beamPattern =
-        thrust::complex<float>(azimuthBeamPattern * elevationBeamPattern, 0.0);
-    thrust::complex<float> targetArea_sqrt = thrust::complex<float>(sqrt(distance * area_scaler), 0.0);
-    thrust::complex<float> propagationTerm =
-        thrust::complex<float>(1.0 / pow(distance, 2.0) * exp(-2.0 * attenuation * distance), 0.0);
+    thrust::complex<half> randomAmps = thrust::complex<half>(__hdiv(xi_z, hrsqrt(2.0f)), __hdiv(xi_y, hrsqrt(2.0f)));
+    thrust::complex<half> lambert_sqrt =
+        thrust::complex<half>(__hmul(__float2half(mu_sqrt), hcos(incidence)), __float2half(0.0f));
+    thrust::complex<half> beamPattern =
+        thrust::complex<half>(__hmul(azimuthBeamPattern, elevationBeamPattern), __float2half(0.0f));
+    thrust::complex<half> targetArea_sqrt = thrust::complex<half>(hrsqrt( __hmul(distance, __float2half(area_scaler))), __float2half(0.0f));
+    thrust::complex<half> propagationTerm =
+        thrust::complex<half>(__hdiv( __float2half(1.0f) ,__hmul(__hmul(distance, distance), hexp( __hmul(__hmul(__float2half(-2.0f),__float2half(attenuation)), distance)))),  __float2half(0.0f));
+    thrust::complex<float> propagationTerm_float = thrust::complex<float>(__half2float(propagationTerm.real()), __half2float(propagationTerm.imag()));
 
-    thrust::complex<float> amplitude = randomAmps * thrust::complex<float>(sourceTerm, 0.0) * propagationTerm * beamPattern * lambert_sqrt * targetArea_sqrt;
+    thrust::complex<float> amplitude_kernel = propagationTerm_float * thrust::complex<float>(sourceTerm, 0.0f);
+    thrust::complex<half> amplitude = randomAmps * thrust::complex<half>(__float2half(amplitude_kernel.real()), __float2half(amplitude_kernel.imag())) * beamPattern * lambert_sqrt * targetArea_sqrt;
 
     // Summation of Echo returned from a signal (frequency domain)
     for (size_t f = 0; f < nFreq; f++)
@@ -250,11 +272,13 @@ __global__ void sonar_calculation(thrust::complex<float> *P_Beams,
       else
         freq = delta_f * (-(nFreq - 1) / 2.0 + f*1.0f + 1.0);
       float kw = 2.0 * M_PI * freq / soundSpeed; // wave vector
-      thrust::complex<float> unitImag = thrust::complex<float>(0.0, 1.0);
-      thrust::complex<float> complexDistance = thrust::complex<float>(0.0, distance);
+
       // Transmit spectrum, frequency domain
+      thrust::complex<float> amplitude_float = thrust::complex<float>(__half2float(amplitude.real()),__half2float(amplitude.imag()));
+      thrust::complex<float> kernel = exp(thrust::complex<float>(0.0f, 2.0f * __half2float(distance) * kw)) * amplitude_float;
+
       P_Beams[beam * nFreq * (int)(nRays / raySkips) + (int)(ray / raySkips) * nFreq + f] =
-          exp(thrust::complex<float>(0.0, 2 * distance * kw)) * amplitude;
+          thrust::complex<float>(kernel.real() , kernel.imag());
     }
   }
   // Stopper for debugging
@@ -342,6 +366,7 @@ namespace NpsGazeboSonar
     const int nFreq = _nFreq;
     const int raySkips = _raySkips;
 
+
     //#######################################################//
     //###############    Sonar Calculation   ################//
     //#######################################################//
@@ -397,10 +422,10 @@ namespace NpsGazeboSonar
                     (depth_image.rows + block.y - 1) / block.y);
 
     // Pixcel array
-    thrust::complex<float> *P_Beams;
-    thrust::complex<float> *d_P_Beams;
+    thrust::complex<int> *P_Beams;
+    thrust::complex<int> *d_P_Beams;
     const int P_Beams_N = nBeams * (int)(nRays / raySkips) * (nFreq + 1);
-    const int P_Beams_Bytes = sizeof(thrust::complex<float>) * P_Beams_N;
+    const int P_Beams_Bytes = sizeof(thrust::complex<int>) * P_Beams_N;
     SAFE_CALL(cudaMallocHost((void **)&P_Beams, P_Beams_Bytes), "CUDA Malloc Failed");
     SAFE_CALL(cudaMalloc((void **)&d_P_Beams, P_Beams_Bytes), "CUDA Malloc Failed");
 
@@ -461,14 +486,14 @@ namespace NpsGazeboSonar
     dim3 dimBlock(BLOCK_SIZE, BLOCK_SIZE);
 
     // GPU Ray summation using column sum
-    float *P_Ray_real, *P_Ray_imag;
-    float *d_P_Ray_real, *d_P_Ray_imag;
+    int *P_Ray_real, *P_Ray_imag;
+    int *d_P_Ray_real, *d_P_Ray_imag;
     const int P_Ray_N = (int)(nRays / raySkips) * (nFreq);
-    const int P_Ray_Bytes = sizeof(float) * P_Ray_N;
-    float *P_Ray_F_real, *P_Ray_F_imag;
-    float *d_P_Ray_F_real, *d_P_Ray_F_imag;
+    const int P_Ray_Bytes = sizeof(int) * P_Ray_N;
+    int *P_Ray_F_real, *P_Ray_F_imag;
+    int *d_P_Ray_F_real, *d_P_Ray_F_imag;
     const int P_Ray_F_N = (nFreq)*1;
-    const int P_Ray_F_Bytes = sizeof(float) * P_Ray_F_N;
+    const int P_Ray_F_Bytes = sizeof(int) * P_Ray_F_N;
     cudaMallocHost((void **)&P_Ray_real, P_Ray_Bytes);
     cudaMallocHost((void **)&P_Ray_imag, P_Ray_Bytes);
     cudaMallocHost((void **)&P_Ray_F_real, P_Ray_F_Bytes);
@@ -531,7 +556,7 @@ namespace NpsGazeboSonar
            static_cast<long long int>(duration.count() / 10000));
     start = std::chrono::high_resolution_clock::now();
 
-    // // -------------- Beam culling correction -----------------//
+    // -------------- Beam culling correction -----------------//
     // beamCorrector and beamCorrectorSum is precalculated at parent cpp
     float *P_Beams_Cor_real, *P_Beams_Cor_imag;
     float *P_Beams_Cor_F_real, *P_Beams_Cor_F_imag;
@@ -562,8 +587,8 @@ namespace NpsGazeboSonar
     {
       for (size_t f = 0; f < nFreq; f++)
       {
-        P_Beams_Cor_real[f * nBeams + beam] = P_Beams_F[beam][f].real();
-        P_Beams_Cor_imag[f * nBeams + beam] = P_Beams_F[beam][f].imag();
+        P_Beams_Cor_real[f * nBeams + beam] = P_Beams_F[beam][f].real() * 1.0f;
+        P_Beams_Cor_imag[f * nBeams + beam] = P_Beams_F[beam][f].imag() * 1.0f;
       }
       for (size_t beam_other = 0; beam_other < nBeams; beam_other ++)
         beamCorrector_lin[beam_other * nBeams + beam] = beamCorrector[beam][beam_other];
@@ -659,8 +684,8 @@ namespace NpsGazeboSonar
     for (size_t beam = 0; beam < nBeams; beam ++)
       for (size_t f = 0; f < nFreq; f++)
         P_Beams_F[beam][f] =
-            Complex(P_Beams_Cor_F_real[beam * nFreq + f] / beamCorrectorSum,
-                    P_Beams_Cor_F_imag[beam * nFreq + f] / beamCorrectorSum);
+            Complex(static_cast<int>(P_Beams_Cor_F_real[beam * nFreq + f] / beamCorrectorSum),
+                    static_cast<int>(P_Beams_Cor_F_imag[beam * nFreq + f] / beamCorrectorSum));
 
     // Free memory
     cudaFree(d_P_Beams_Cor_imag);
@@ -702,8 +727,8 @@ namespace NpsGazeboSonar
       {
         if (f < nFreq)
           hostInputData[beam * DATASIZE + f] =
-              make_cuComplex(P_Beams_F[beam][f].real(),
-                             P_Beams_F[beam][f].imag());
+              make_cuComplex(P_Beams_F[beam][f].real() * 1.0f,
+                             P_Beams_F[beam][f].imag() * 1.0f);
         else
           hostInputData[beam * DATASIZE + f] =
               (make_cuComplex(0.f, 0.f)); // zero padding
@@ -761,8 +786,8 @@ namespace NpsGazeboSonar
       for (int f = 0; f < nFreq; f++)
       {
         P_Beams_F[beam][f] =
-            Complex(hostOutputData[beam * DATASIZE + f].x * delta_f,
-                    hostOutputData[beam * DATASIZE + f].y * delta_f);
+            Complex(static_cast<int>(hostOutputData[beam * DATASIZE + f].x * delta_f / DATASIZE),
+                    static_cast<int>(hostOutputData[beam * DATASIZE + f].y * delta_f / DATASIZE));
       }
     }
 

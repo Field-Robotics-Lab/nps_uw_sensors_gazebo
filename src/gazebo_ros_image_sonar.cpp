@@ -204,7 +204,7 @@ void NpsGazeboRosImageSonar::Load(sensors::SensorPtr _parent,
     this->constMu =
       _sdf->GetElement("constantReflectivity")->Get<bool>();
   if (!_sdf->HasElement("raySkips"))
-    this->raySkips = 0;
+    this->raySkips = 10;
   else
     this->raySkips =
       _sdf->GetElement("raySkips")->Get<int>();

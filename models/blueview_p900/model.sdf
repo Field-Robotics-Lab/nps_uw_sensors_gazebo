@@ -60,7 +60,7 @@
           <bandwidth>29.9e3</bandwidth>
           <soundSpeed>1500</soundSpeed>
           <sourceLevel>220</sourceLevel>
-          <maxDistance>10</maxDistance>
+          <maxDistance>60</maxDistance>
           <constantReflectivity>true</constantReflectivity>
           <raySkips>10</raySkips>
           <writeLog>true</writeLog>
