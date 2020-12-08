@@ -218,6 +218,7 @@ void NpsGazeboRosImageSonar::Load(sensors::SensorPtr _parent,
   //   // nothing yet
 
   // Transmission path properties (typical model used here)
+  // More sophisticated model by Francois-Garrison model is available
   this->absorption = 0.0354;  // [dB/m]
   this->attenuation = this->absorption*log(10)/20.0;
 
