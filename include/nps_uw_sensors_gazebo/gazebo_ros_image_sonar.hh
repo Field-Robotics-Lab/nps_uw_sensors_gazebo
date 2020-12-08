@@ -49,7 +49,7 @@
 #include <sensor_msgs/fill_image.h>
 #include <std_msgs/Float64.h>
 #include <image_transport/image_transport.h>
-#include <frl_sensor_msgs/SonarImage.h>
+#include <imaging_sonar_msgs/SonarImage.h>
 
 // dynamic reconfigure stuff
 #include <gazebo_plugins/GazeboRosCameraConfig.h>
@@ -173,7 +173,7 @@ namespace gazebo
 
     private: sensor_msgs::Image depth_image_msg_;
     private: sensor_msgs::PointCloud2 point_cloud_msg_;
-    private: frl_sensor_msgs::SonarImage sonar_image_msg_;
+    private: imaging_sonar_msgs::SonarImage sonar_image_msg_;
     private: cv::Mat point_cloud_image_;
 
     std::default_random_engine generator;

@@ -348,7 +348,7 @@ void NpsGazeboRosImageSonar::Advertise()
 
   // Publisher for sonar image
   this->sonar_image_pub_ =
-      this->rosnode_->advertise<frl_sensor_msgs::SonarImage>
+      this->rosnode_->advertise<imaging_sonar_msgs::SonarImage>
       ("sonar_image", 10);
 }
 
