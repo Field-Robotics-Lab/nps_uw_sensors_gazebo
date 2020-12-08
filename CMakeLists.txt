@@ -16,7 +16,7 @@ enable_language(CUDA CXX)
 find_package(catkin REQUIRED COMPONENTS
  tf
  gazebo_plugins
- frl_sensor_msgs)
+ imaging_sonar_msgs)
 
 find_package(gazebo REQUIRED)
 find_package(roscpp REQUIRED)
@@ -41,7 +41,7 @@ catkin_package(
   INCLUDE_DIRS
   LIBRARIES
   CATKIN_DEPENDS
-  frl_sensor_msgs
+  imaging_sonar_msgs
  )
 
 ## Plugins

@@ -1,7 +1,5 @@
 /*
- * This file was modified from the original version within Gazebo:
- *
- * Copyright (C) 2014 Open Source Robotics Foundation
+ * Copyright 2020 Naval Postgraduate School
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,21 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * Modifications:
- *
- * Copyright 2018 Nils Bore (nbore@kth.se)
- *
- * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
- *
- * 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- */
+*/
 
 #ifndef GAZEBO_ROS_IMAGE_SONAR_HH
 #define GAZEBO_ROS_IMAGE_SONAR_HH
@@ -49,7 +33,7 @@
 #include <sensor_msgs/fill_image.h>
 #include <std_msgs/Float64.h>
 #include <image_transport/image_transport.h>
-#include <frl_sensor_msgs/SonarImage.h>
+#include <imaging_sonar_msgs/SonarImage.h>
 
 // dynamic reconfigure stuff
 #include <gazebo_plugins/GazeboRosCameraConfig.h>
@@ -173,7 +157,7 @@ namespace gazebo
 
     private: sensor_msgs::Image depth_image_msg_;
     private: sensor_msgs::PointCloud2 point_cloud_msg_;
-    private: frl_sensor_msgs::SonarImage sonar_image_msg_;
+    private: imaging_sonar_msgs::SonarImage sonar_image_msg_;
     private: cv::Mat point_cloud_image_;
 
     std::default_random_engine generator;
