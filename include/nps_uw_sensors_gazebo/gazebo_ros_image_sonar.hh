@@ -18,9 +18,6 @@
 #ifndef GAZEBO_ROS_IMAGE_SONAR_HH
 #define GAZEBO_ROS_IMAGE_SONAR_HH
 
-// Half precision
-#include "cuda_fp16.h"
-
 // ros stuff
 #include <ros/ros.h>
 #include <ros/callback_queue.h>

@@ -16,11 +16,12 @@
 */
 
 #include <assert.h>
-#include <limits>
 #include <sys/stat.h>
 #include <tf/tf.h>
 #include <sensor_msgs/image_encodings.h>
 #include <cv_bridge/cv_bridge.h>
+
+#include <sensor_msgs/point_cloud2_iterator.h>
 
 #include <nps_uw_sensors_gazebo/sonar_calculation_cuda.cuh>
 
@@ -33,11 +34,10 @@
 #include <sdf/sdf.hh>
 #include <gazebo/sensors/SensorTypes.hh>
 
-#include <sensor_msgs/point_cloud2_iterator.h>
-
 #include <algorithm>
 #include <string>
 #include <vector>
+#include <limits>
 
 namespace gazebo
 {
@@ -255,7 +255,7 @@ void NpsGazeboRosImageSonar::Load(sensors::SensorPtr _parent,
   ROS_INFO_STREAM("# of Rays / Beam (Elevation, Azimuth) = ("
       << ray_nElevationRays << ", " << ray_nAzimuthRays << ")");
   ROS_INFO_STREAM("Calculation skips (Elevation) = "
-      << this->raySkips );
+      << this->raySkips);
   ROS_INFO_STREAM("# of Time data / Beam = " << this->nFreq);
   ROS_INFO_STREAM("==================================================");
   ROS_INFO_STREAM("");
@@ -456,11 +456,7 @@ void NpsGazeboRosImageSonar::OnNewImageFrame(const unsigned char *_image,
 void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
 {
   this->lock_.lock();
-  // Use OpenCV to compute a normal image from the depth image9
-  // cv::Mat depth_image(this->height, this->width, CV_32FC1,
-  //                     const_cast<float*>(reinterpret_cast<const float*>(_src)));
   cv::Mat depth_image = this->point_cloud_image_;
-
   cv::Mat normal_image = this->ComputeNormalImage(depth_image);
   double vFOV = this->parentSensor->DepthCamera()->VFOV().Radian();
   double hFOV = this->parentSensor->DepthCamera()->HFOV().Radian();
@@ -571,7 +567,7 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
                     0.5 * static_cast<double>(width-1), fl));
   this->sonar_image_msg_.azimuth_angles = azimuth_angles;
   std::vector<float> elevation_angles;
-  elevation_angles.push_back(vFOV / 2.0); // 1D in elevation
+  elevation_angles.push_back(vFOV / 2.0);  // 1D in elevation
   this->sonar_image_msg_.elevation_angles = elevation_angles;
   std::vector<float> ranges;
   for (size_t i = 0; i < P_Beams[0].size(); i ++)
@@ -583,7 +579,7 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
   std::vector<uchar> intensities;
   for (size_t beam = 0; beam < nBeams; beam ++)
     for (size_t f = 0; f < nFreq; f ++)
-      intensities.push_back(static_cast<uchar>(static_cast<int>(abs(P_Beams[beam][f]))));
+      intensities.push_back(static_cast<uchar>(abs(P_Beams[beam][f])));
   this->sonar_image_msg_.intensities = intensities;
 
   this->sonar_image_pub_.publish(this->sonar_image_msg_);
@@ -614,12 +610,16 @@ void NpsGazeboRosImageSonar::ComputePointCloud(const float *_src)
 {
   this->lock_.lock();
 
-  this->point_cloud_msg_.header.frame_id = this->frame_name_;
-  this->point_cloud_msg_.header.stamp.sec = this->depth_sensor_update_time_.sec;
-  this->point_cloud_msg_.header.stamp.nsec = this->depth_sensor_update_time_.nsec;
+  this->point_cloud_msg_.header.frame_id
+        = this->frame_name_;
+  this->point_cloud_msg_.header.stamp.sec
+        = this->depth_sensor_update_time_.sec;
+  this->point_cloud_msg_.header.stamp.nsec
+        = this->depth_sensor_update_time_.nsec;
   this->point_cloud_msg_.width = this->width;
   this->point_cloud_msg_.height = this->height;
-  this->point_cloud_msg_.row_step = this->point_cloud_msg_.point_step * this->width;
+  this->point_cloud_msg_.row_step
+        = this->point_cloud_msg_.point_step * this->width;
 
   sensor_msgs::PointCloud2Modifier pcd_modifier(point_cloud_msg_);
   pcd_modifier.setPointCloud2FieldsByString(2, "xyz", "rgb");
@@ -669,7 +669,7 @@ void NpsGazeboRosImageSonar::ComputePointCloud(const float *_src)
       // rotation from the physical camera *_frame
       *iter_x = depth * tan(azimuth);
       *iter_y = depth * tan(elevation);
-      if(depth > this->point_cloud_cutoff_)
+      if (depth > this->point_cloud_cutoff_)
       {
         *iter_z = depth;
         *iter_image = sqrt(*iter_x * *iter_x +
