@@ -1,5 +1,12 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.0.2)
 project(nps_uw_sensors_gazebo)
+
+if(NOT "${CMAKE_VERSION}" VERSION_LESS "3.16")
+    set(CMAKE_CXX_STANDARD 17)
+    set(CMAKE_CXX_STANDARD_REQUIRED ON)
+else()
+    add_compile_options(-std=c++11)
+endif()
 
 find_package(catkin REQUIRED tf gazebo_plugins)
 
