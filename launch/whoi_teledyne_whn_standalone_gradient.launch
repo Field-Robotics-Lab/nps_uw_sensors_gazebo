@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="gui" default="true"/>
+    <arg name="paused" default="false"/>
+<!--     <arg name="world_name" default="$(find nps_uw_sensors_gazebo)/worlds/ocean_waves_watch_whoi_dvl.world"/> -->
+    <!-- We resume the logic in empty_world.launch, changing only the name of the world to be launched -->
+
+    <!-- Initial USV location and attitude-->
+    <arg name="x" default="0" />
+    <arg name="y" default="0" />
+    <arg name="z" default="-1" />
+    <arg name="P" default="0" />
+    <arg name="R" default="0" />
+    <arg name="Y" default="0" />
+
+    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+        <!-- Edit the name of the world file (example_underwater.world) when using this template -->
+        <arg name="world_name" value="worlds/graded_seabed.world"/>
+<!--         <arg name="world_name" value="$(arg world_name)"/> -->
+        <arg name="paused" value="$(arg paused)"/>
+        <arg name="extra_gazebo_args" value="-s libdsros_sensors.so"/>
+        <arg name="use_sim_time" value="true"/>
+        <arg name="gui" value="$(arg gui)"/>
+        <arg name="headless" value="false"/>
+        <arg name="debug" value="false"/>
+        <arg name="verbose" value="true"/>
+    </include>
+
+    <!-- Load and spawn the model, starts the joint & state publishers, make the model move -->
+    <include file="$(find nps_uw_sensors_gazebo)/launch/upload_whoi_teledyne_whn_standalone.xml" />
+    <param name="model_name" type="str" value="whoi_teledyne_whn"/>
+    <param name="base_link_name" type="str" value="robot_base_link"/>
+    <node name="spawn_whn" pkg="gazebo_ros" type="spawn_model"
+        args="-x $(arg x) -y $(arg y) -z $(arg z)
+              -R $(arg R) -P $(arg P) -Y $(arg Y) -urdf -param whoi_teledyne_whn -model whoi_teledyne_whn"
+        respawn="false" output="screen" />
+    <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" respawn="false">
+        <remap from="robot_description" to="whoi_teledyne_whn" />
+    </node>
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher">
+        <remap from="robot_description" to="whoi_teledyne_whn" />
+    </node>
+    <node name="twist_keyboard" pkg="teleop_twist_keyboard" type="teleop_twist_keyboard.py">
+    </node>
+    <node name="whoi_twist_dvl_state" pkg="nps_uw_sensors_gazebo" type="whoi_dvl_state_and_gradient.py">
+    </node>
+    <node name="plot_gradient" pkg="nps_uw_sensors_gazebo" type="dvl_gradient_plot.py">
+    </node>
+</launch>
