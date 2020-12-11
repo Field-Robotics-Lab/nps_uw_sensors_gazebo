@@ -16,16 +16,16 @@
       </inertial>
       <collision name="collision">
         <geometry>
-	  <mesh>
-	    <uri>model://blueview_p900/meshes/COLLISION-p900.dae</uri>
-	  </mesh>
+          <mesh>
+            <uri>model://blueview_p900/meshes/COLLISION-p900.dae</uri>
+          </mesh>
         </geometry>
       </collision>
       <visual name="visual">
         <geometry>
-	  <mesh>
-	    <uri>model://blueview_p900/meshes/p900.dae</uri>
-	  </mesh>
+          <mesh>
+            <uri>model://blueview_p900/meshes/p900.dae</uri>
+          </mesh>
         </geometry>
       </visual>
 
@@ -36,23 +36,23 @@
         <camera>
           <!-- 90 degrees for the M900-90 -->
           <horizontal_fov>1.57079632679</horizontal_fov>
-                <image>
+          <image>
             <width>512</width>
             <!-- Set vertical FOV by setting image height -->
             <!-- For 20 deg. -->
             <height>114</height>
-                <format>R8G8B8</format>
-                </image>
-                <clip>
-                  <near>02</near> <!-- optimal 2m-60m -->
-                  <far>60</far>
-                </clip>
+            <format>R8G8B8</format>
+          </image>
+          <clip>
+            <near>02</near> <!-- optimal 2m-60m -->
+            <far>60</far>
+          </clip>
           <depth_camera>
-                  <output>depths</output>
-                </depth_camera>
-                <save enabled="true">
-                  <path>/tmp/camera</path>
-                </save>
+            <output>depths</output>
+          </depth_camera>
+          <save enabled="true">
+            <path>/tmp/camera</path>
+          </save>
         </camera>
         <plugin filename="libnps_image_sonar_ros_plugin.so" name="forward_sonar">
           <!-- Sonar properties -->
@@ -63,7 +63,8 @@
           <maxDistance>10</maxDistance>
           <constantReflectivity>true</constantReflectivity>
           <raySkips>10</raySkips>
-          <writeLog>true</writeLog>
+          <writeLog>false</writeLog>
+          <debugFlag>false</debugFlag>
           <writeFrameInterval>5</writeFrameInterval>
           <!-- This name is prepended to ROS topics -->
           <cameraName>blueview_p900</cameraName>
@@ -73,6 +74,8 @@
           <pointCloudTopicName>point_cloud</pointCloudTopicName>
           <depthImageTopicName>image_depth</depthImageTopicName>
           <depthImageCameraInfoTopicName>image_depth/camera_info</depthImageCameraInfoTopicName>
+          <sonarImageRawTopicName>sonar_image_raw</sonarImageRawTopicName>
+          <sonarImageTopicName>sonar_image</sonarImageTopicName>
           <frameName>forward_sonar_optical_link</frameName>
         </plugin>
       </sensor>

@@ -342,9 +342,14 @@ namespace NpsGazeboSonar
                                      double _attenuation,
                                      float *window,
                                      float **beamCorrector,
-                                     float beamCorrectorSum)
+                                     float beamCorrectorSum,
+                                     bool debugFlag)
   {
     auto start = std::chrono::high_resolution_clock::now();
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+    if (debugFlag)
+      start = std::chrono::high_resolution_clock::now();
 
     // ----  Allocation of properties parameters  ---- //
     const float hPixelSize = (float)_hPixelSize;
@@ -366,20 +371,14 @@ namespace NpsGazeboSonar
     const int nFreq = _nFreq;
     const int raySkips = _raySkips;
 
-
     //#######################################################//
     //###############    Sonar Calculation   ################//
     //#######################################################//
     // ---------   Calculation parameters   --------- //
-    // double min_dist, max_dist;
-    // cv::minMaxLoc(depth_image, &min_dist, &max_dist);
-    // float max_distance = (float) max_dist;
     const float max_distance = maxDistance;
     // Signal
     const float max_T = max_distance * 2.0 / soundSpeed;
     const float delta_f = 1.0 / max_T;
-    // const float delta_t = 1.0/bandwidth;
-    // const int nFreq = ceil(bandwidth/delta_f);
     // Precalculation
     const float mu_sqrt = sqrt(mu);
     const float area_scaler = ray_azimuthAngleWidth * ray_elevationAngleWidth;
@@ -393,9 +392,8 @@ namespace NpsGazeboSonar
     const int normal_image_Bytes = normal_image.step * normal_image.rows;
     const int rand_image_Bytes = rand_image.step * rand_image.rows;
 
-    float *d_depth_image, *d_normal_image, *d_rand_image;
-
     //Allocate device memory
+    float *d_depth_image, *d_normal_image, *d_rand_image;
     SAFE_CALL(cudaMalloc((void **)&d_depth_image, depth_image_Bytes), "CUDA Malloc Failed");
     SAFE_CALL(cudaMalloc((void **)&d_normal_image, normal_image_Bytes), "CUDA Malloc Failed");
     SAFE_CALL(cudaMalloc((void **)&d_rand_image, rand_image_Bytes), "CUDA Malloc Failed");
@@ -417,7 +415,7 @@ namespace NpsGazeboSonar
     //Specify a reasonable block size
     const dim3 block(BLOCK_SIZE, BLOCK_SIZE);
 
-    // //Calculate grid size to cover the whole image
+    //Calculate grid size to cover the whole image
     const dim3 grid((depth_image.cols + block.x - 1) / block.x,
                     (depth_image.rows + block.y - 1) / block.y);
 
@@ -471,10 +469,13 @@ namespace NpsGazeboSonar
     cudaFree(d_P_Beams);
 
     // For calc time measure
-    auto stop = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    printf("GPU Sonar Computation Time %lld/100 [s]\n", static_cast<long long int>(duration.count() / 10000));
-    start = std::chrono::high_resolution_clock::now();
+    if (debugFlag)
+    {
+      stop = std::chrono::high_resolution_clock::now();
+      duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+      printf("GPU Sonar Computation Time %lld/100 [s]\n", static_cast<long long int>(duration.count() / 10000));
+      start = std::chrono::high_resolution_clock::now();
+    }
 
     //########################################################//
     //#########   Summation, Culling and windowing   #########//
@@ -518,22 +519,18 @@ namespace NpsGazeboSonar
         }
       }
 
-      SAFE_CALL(cudaMemcpy(d_P_Ray_real, P_Ray_real, P_Ray_Bytes,
-                           cudaMemcpyHostToDevice),
+      SAFE_CALL(cudaMemcpy(d_P_Ray_real, P_Ray_real, P_Ray_Bytes, cudaMemcpyHostToDevice),
                 "CUDA Memcpy Failed");
-      SAFE_CALL(cudaMemcpy(d_P_Ray_imag, P_Ray_imag, P_Ray_Bytes,
-                           cudaMemcpyHostToDevice),
+      SAFE_CALL(cudaMemcpy(d_P_Ray_imag, P_Ray_imag, P_Ray_Bytes, cudaMemcpyHostToDevice),
                 "CUDA Memcpy Failed");
 
       column_sums_reduce<<<dimGrid_Ray, dimBlock>>>(d_P_Ray_real, d_P_Ray_F_real, nFreq, (int)(nRays / raySkips));
       column_sums_reduce<<<dimGrid_Ray, dimBlock>>>(d_P_Ray_imag, d_P_Ray_F_imag, nFreq, (int)(nRays / raySkips));
 
       SAFE_CALL(cudaMemcpy(P_Ray_F_real, d_P_Ray_F_real, P_Ray_F_Bytes,
-                           cudaMemcpyDeviceToHost),
-                "CUDA Memcpy Failed");
+                           cudaMemcpyDeviceToHost), "CUDA Memcpy Failed");
       SAFE_CALL(cudaMemcpy(P_Ray_F_imag, d_P_Ray_F_imag, P_Ray_F_Bytes,
-                           cudaMemcpyDeviceToHost),
-                "CUDA Memcpy Failed");
+                           cudaMemcpyDeviceToHost), "CUDA Memcpy Failed");
       SAFE_CALL(cudaDeviceSynchronize(), "Kernel Launch Failed");
 
       for (size_t f = 0; f < nFreq; f++)
@@ -550,11 +547,14 @@ namespace NpsGazeboSonar
     cudaFree(d_P_Ray_F_real);
     cudaFree(d_P_Ray_F_imag);
 
-    stop = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    printf("Sonar Ray Summation %lld/100 [s]\n",
-           static_cast<long long int>(duration.count() / 10000));
-    start = std::chrono::high_resolution_clock::now();
+    if (debugFlag)
+    {
+      stop = std::chrono::high_resolution_clock::now();
+      duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+      printf("Sonar Ray Summation %lld/100 [s]\n",
+            static_cast<long long int>(duration.count() / 10000));
+      start = std::chrono::high_resolution_clock::now();
+    }
 
     // -------------- Beam culling correction -----------------//
     // beamCorrector and beamCorrectorSum is precalculated at parent cpp
@@ -706,11 +706,14 @@ namespace NpsGazeboSonar
     cudaFreeHost(diag_ptr);
 
     // For calc time measure
-    stop = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    printf("GPU Window & Correction %lld/100 [s]\n",
-           static_cast<long long int>(duration.count() / 10000));
-    start = std::chrono::high_resolution_clock::now();
+    if (debugFlag)
+    {
+      stop = std::chrono::high_resolution_clock::now();
+      duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+      printf("GPU Window & Correction %lld/100 [s]\n",
+            static_cast<long long int>(duration.count() / 10000));
+      start = std::chrono::high_resolution_clock::now();
+    }
 
     //#################################################//
     //###################   FFT   #####################//
@@ -739,11 +742,11 @@ namespace NpsGazeboSonar
     cufftComplex *deviceInputData;
     SAFE_CALL(cudaMalloc((void **)&deviceInputData,
                          DATASIZE * BATCH * sizeof(cufftComplex)),
-              "FFT CUDA Malloc Failed");
+                         "FFT CUDA Malloc Failed");
     SAFE_CALL(cudaMemcpy(deviceInputData, hostInputData,
                          DATASIZE * BATCH * sizeof(cufftComplex),
                          cudaMemcpyHostToDevice),
-              "FFT CUDA Memcopy Failed");
+                         "FFT CUDA Memcopy Failed");
 
     // --- Host side output data allocation
     cufftComplex *hostOutputData =
@@ -775,7 +778,7 @@ namespace NpsGazeboSonar
     SAFE_CALL(cudaMemcpy(hostOutputData, deviceOutputData,
                          DATASIZE * BATCH * sizeof(cufftComplex),
                          cudaMemcpyDeviceToHost),
-              "FFT CUDA Memcopy Failed");
+                         "FFT CUDA Memcopy Failed");
 
     cufftDestroy(handle);
     cudaFree(deviceOutputData);
@@ -792,10 +795,13 @@ namespace NpsGazeboSonar
     }
 
     // For calc time measure
-    stop = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    printf("GPU FFT Calc Time %lld/100 [s]\n",
-           static_cast<long long int>(duration.count() / 10000));
+    if (debugFlag)
+    {
+      stop = std::chrono::high_resolution_clock::now();
+      duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+      printf("GPU FFT Calc Time %lld/100 [s]\n",
+            static_cast<long long int>(duration.count() / 10000));
+    }
 
     return P_Beams_F;
   }

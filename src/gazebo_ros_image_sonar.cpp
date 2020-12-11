@@ -52,6 +52,7 @@ NpsGazeboRosImageSonar::NpsGazeboRosImageSonar() :
   this->depth_image_connect_count_ = 0;
   this->depth_info_connect_count_ = 0;
   this->point_cloud_connect_count_ = 0;
+  this->sonar_image_connect_count_ = 0;
   this->last_depth_image_camera_info_update_time_ = common::Time(0);
 
   // for csv write logs
@@ -66,6 +67,7 @@ NpsGazeboRosImageSonar::~NpsGazeboRosImageSonar()
   this->newDepthFrameConnection.reset();
   this->newImageFrameConnection.reset();
   this->newRGBPointCloudConnection.reset();
+  this->newSonarImageConnection.reset();
 
   this->parentSensor.reset();
   this->depthCamera.reset();
@@ -104,6 +106,13 @@ void NpsGazeboRosImageSonar::Load(sensors::SensorPtr _parent,
   this->newImageFrameConnection =
     this->depthCamera->ConnectNewImageFrame(
         std::bind(&NpsGazeboRosImageSonar::OnNewImageFrame,
+                  this, std::placeholders::_1, std::placeholders::_2,
+                  std::placeholders::_3, std::placeholders::_4,
+                  std::placeholders::_5));
+
+  this->newSonarImageConnection =
+    this->depthCamera->ConnectNewDepthFrame(
+        std::bind(&NpsGazeboRosImageSonar::OnNewDepthFrame,
                   this, std::placeholders::_1, std::placeholders::_2,
                   std::placeholders::_3, std::placeholders::_4,
                   std::placeholders::_5));
@@ -158,6 +167,19 @@ void NpsGazeboRosImageSonar::Load(sensors::SensorPtr _parent,
   else
     this->point_cloud_cutoff_ =
         _sdf->GetElement("pointCloudCutoff")->Get<double>();
+
+  // sonar stuff
+  if (!_sdf->HasElement("sonarImageRawTopicName"))
+    this->sonar_image_raw_topic_name_ = "sonar_image_raw";
+  else
+    this->sonar_image_raw_topic_name_ =
+      _sdf->GetElement("sonarImageRawTopicName")->Get<std::string>();
+  if (!_sdf->HasElement("sonarImageTopicName"))
+    this->sonar_image_topic_name_ = "sonar_image";
+  else
+    this->sonar_image_topic_name_ =
+      _sdf->GetElement("sonarImageTopicName")->Get<std::string>();
+
 
   if (!_sdf->HasElement("clip"))
   {
@@ -262,22 +284,34 @@ void NpsGazeboRosImageSonar::Load(sensors::SensorPtr _parent,
   ROS_INFO_STREAM("");
 
   // get writeLog Flag
-  if (_sdf->HasElement("writeLog"))
+  if (!_sdf->HasElement("writeLog"))
+    this->writeLogFlag = false;
+  else
   {
     this->writeLogFlag = _sdf->Get<bool>("writeLog");
-    if (_sdf->HasElement("writeLog"))
-      this->writeInterval = _sdf->Get<int>("writeFrameInterval");
-    else
-      this->writeInterval = 10;
-    ROS_INFO_STREAM("Raw data at " << "/tmp/SonarRawData_{numbers}.csv");
-    ROS_INFO_STREAM("every " << this->writeInterval << " frames");
-    ROS_INFO_STREAM("");
+    if (this->writeLogFlag)
+    {
+      if (_sdf->HasElement("writeFrameInterval"))
+        this->writeInterval = _sdf->Get<int>("writeFrameInterval");
+      else
+        this->writeInterval = 10;
+      ROS_INFO_STREAM("Raw data at " << "/tmp/SonarRawData_{numbers}.csv");
+      ROS_INFO_STREAM("every " << this->writeInterval << " frames");
+      ROS_INFO_STREAM("");
 
-    struct stat buffer;
-    std::string logfilename("/tmp/SonarRawData_000001.csv");
-    if (stat (logfilename.c_str(), &buffer) == 0)
-      system("rm /tmp/SonarRawData*.csv");
+      struct stat buffer;
+      std::string logfilename("/tmp/SonarRawData_000001.csv");
+      if (stat (logfilename.c_str(), &buffer) == 0)
+        system("rm /tmp/SonarRawData*.csv");
+    }
   }
+
+  // Get debug flag for computation time display
+  if (!_sdf->HasElement("debugFlag"))
+    this->debugFlag = false;
+  else
+    this->debugFlag =
+      _sdf->GetElement("debugFlag")->Get<bool>();
 
   // -- Pre calculations for sonar -- //
   // Hamming window
@@ -323,6 +357,14 @@ void NpsGazeboRosImageSonar::Advertise()
   this->depth_image_camera_info_pub_ =
     this->rosnode_->advertise(depth_image_camera_info_ao);
 
+  ros::AdvertiseOptions normal_image_ao =
+    ros::AdvertiseOptions::create<sensor_msgs::Image>(
+      this->depth_image_topic_name_+"_normals", 1,
+      boost::bind(&NpsGazeboRosImageSonar::NormalImageConnect, this),
+      boost::bind(&NpsGazeboRosImageSonar::NormalImageDisconnect, this),
+      ros::VoidPtr(), &this->camera_queue_);
+  this->normal_image_pub_ = this->rosnode_->advertise(normal_image_ao);
+
   ros::AdvertiseOptions point_cloud_ao =
     ros::AdvertiseOptions::create<sensor_msgs::PointCloud2>(
       this->point_cloud_topic_name_, 1,
@@ -332,8 +374,25 @@ void NpsGazeboRosImageSonar::Advertise()
   this->point_cloud_pub_ = this->rosnode_->advertise(point_cloud_ao);
 
   // Publisher for sonar image
+  ros::AdvertiseOptions sonar_image_raw_ao =
+    ros::AdvertiseOptions::create<imaging_sonar_msgs::SonarImage>(
+      this->sonar_image_raw_topic_name_, 1,
+      boost::bind(&NpsGazeboRosImageSonar::SonarImageRawConnect, this),
+      boost::bind(&NpsGazeboRosImageSonar::SonarImageRawDisconnect, this),
+      ros::VoidPtr(), &this->camera_queue_);
+  this->sonar_image_raw_pub_ = this->rosnode_->advertise(sonar_image_raw_ao);
+
+  ros::AdvertiseOptions sonar_image_ao =
+    ros::AdvertiseOptions::create<sensor_msgs::Image>(
+      this->sonar_image_topic_name_, 1,
+      boost::bind(&NpsGazeboRosImageSonar::SonarImageConnect, this),
+      boost::bind(&NpsGazeboRosImageSonar::SonarImageDisconnect, this),
+      ros::VoidPtr(), &this->camera_queue_);
+  this->sonar_image_pub_ = this->rosnode_->advertise(sonar_image_ao);
+
+
   this->sonar_image_pub_ =
-      this->rosnode_->advertise<imaging_sonar_msgs::SonarImage>
+      this->rosnode_->advertise<sensor_msgs::Image>
       ("sonar_image", 10);
 }
 
@@ -351,6 +410,17 @@ void NpsGazeboRosImageSonar::DepthImageConnect()
 }
 
 void NpsGazeboRosImageSonar::DepthImageDisconnect()
+{
+  this->depth_image_connect_count_--;
+}
+
+void NpsGazeboRosImageSonar::NormalImageConnect()
+{
+  this->depth_image_connect_count_++;
+  this->parentSensor->SetActive(true);
+}
+
+void NpsGazeboRosImageSonar::NormalImageDisconnect()
 {
   this->depth_image_connect_count_--;
 }
@@ -378,6 +448,24 @@ void NpsGazeboRosImageSonar::PointCloudDisconnect()
   (*this->image_connect_count_)--;
   if (this->point_cloud_connect_count_ <= 0)
     this->parentSensor->SetActive(false);
+}
+void NpsGazeboRosImageSonar::SonarImageConnect()
+{
+  this->sonar_image_connect_count_++;
+  this->parentSensor->SetActive(true);
+}
+void NpsGazeboRosImageSonar::SonarImageDisconnect()
+{
+  this->sonar_image_connect_count_--;
+}
+void NpsGazeboRosImageSonar::SonarImageRawConnect()
+{
+  this->sonar_image_connect_count_++;
+  this->parentSensor->SetActive(true);
+}
+void NpsGazeboRosImageSonar::SonarImageRawDisconnect()
+{
+  this->sonar_image_connect_count_--;
 }
 
 // Update everything when Gazebo provides a new depth frame (texture)
@@ -407,7 +495,7 @@ void NpsGazeboRosImageSonar::OnNewDepthFrame(const float *_image,
       // for use in sonar computation (published in function if needed)
       this->ComputePointCloud(_image);
 
-      // Generate depth image data if topics have subscribers
+      // Generate sonar image data if topics have subscribers
       if (this->depth_image_connect_count_ > 0)
         this->ComputeSonarImage(_image);
     }
@@ -466,6 +554,8 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
 
   // rand number generator
   cv::Mat rand_image = cv::Mat(depth_image.rows, depth_image.cols, CV_32FC2);
+  uint64 randN = static_cast<uint64>(std::rand());
+  cv::theRNG().state = randN;
   cv::RNG rng = cv::theRNG();
   rng.fill(rand_image, cv::RNG::NORMAL, 0.f, 1.f);
 
@@ -502,14 +592,18 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
                   this->attenuation,   // _attenuation
                   this->window,        // _window
                   this->beamCorrector,      // _beamCorrector
-                  this->beamCorrectorSum);  // _beamCorrectorSum
+                  this->beamCorrectorSum,   // _beamCorrectorSum
+                  this->debugFlag);
 
   // For calc time measure
   auto stop = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<
                   std::chrono::microseconds>(stop - start);
-  ROS_INFO_STREAM("GPU Sonar Frame Calc Time " <<
-                   duration.count()/10000 << "/100 [s]\n");
+  if (debugFlag)
+  {
+    ROS_INFO_STREAM("GPU Sonar Frame Calc Time " <<
+                    duration.count()/10000 << "/100 [s]\n");
+  }
 
   // CSV log write stream
   // Each cols corresponds to each beams
@@ -551,57 +645,162 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
   }
 
   // Sonar image ROS msg
-  this->sonar_image_msg_.header.frame_id
+  this->sonar_image_raw_msg_.header.frame_id
         = this->frame_name_.c_str();
-  this->sonar_image_msg_.header.stamp.sec
+  this->sonar_image_raw_msg_.header.stamp.sec
         = this->depth_sensor_update_time_.sec;
-  this->sonar_image_msg_.header.stamp.nsec
+  this->sonar_image_raw_msg_.header.stamp.nsec
         = this->depth_sensor_update_time_.nsec;
-  this->sonar_image_msg_.frequency = this->sonarFreq;
-  this->sonar_image_msg_.sound_speed = this->soundSpeed;
-  this->sonar_image_msg_.azimuth_beamwidth = hPixelSize;
-  this->sonar_image_msg_.elevation_beamwidth = hPixelSize*this->nRays;
+  this->sonar_image_raw_msg_.frequency = this->sonarFreq;
+  this->sonar_image_raw_msg_.sound_speed = this->soundSpeed;
+  this->sonar_image_raw_msg_.azimuth_beamwidth = hPixelSize;
+  this->sonar_image_raw_msg_.elevation_beamwidth = hPixelSize*this->nRays;
   std::vector<float> azimuth_angles;
   double fl = static_cast<double>(width) / (2.0 * tan(hFOV/2.0));
   for (size_t beam = 0; beam < nBeams; beam ++)
     azimuth_angles.push_back(atan2(static_cast<double>(beam) -
                     0.5 * static_cast<double>(width-1), fl));
-  this->sonar_image_msg_.azimuth_angles = azimuth_angles;
+  this->sonar_image_raw_msg_.azimuth_angles = azimuth_angles;
   std::vector<float> elevation_angles;
   elevation_angles.push_back(vFOV / 2.0);  // 1D in elevation
-  this->sonar_image_msg_.elevation_angles = elevation_angles;
+  this->sonar_image_raw_msg_.elevation_angles = elevation_angles;
   std::vector<float> ranges;
   for (size_t i = 0; i < P_Beams[0].size(); i ++)
     ranges.push_back(rangeVector[i]);
-  this->sonar_image_msg_.ranges = ranges;
+  this->sonar_image_raw_msg_.ranges = ranges;
 
-  // this->sonar_image_msg_.is_bigendian = false;
-  this->sonar_image_msg_.data_size = sizeof(float)*2 * nFreq * nBeams;
+  // this->sonar_image_raw_msg_.is_bigendian = false;
+  this->sonar_image_raw_msg_.data_size = sizeof(float)*2 * nFreq * nBeams;
   std::vector<uchar> intensities;
   for (size_t beam = 0; beam < nBeams; beam ++)
     for (size_t f = 0; f < nFreq; f ++)
       intensities.push_back(static_cast<uchar>(abs(P_Beams[beam][f])));
-  this->sonar_image_msg_.intensities = intensities;
+  this->sonar_image_raw_msg_.intensities = intensities;
+
+  this->sonar_image_raw_pub_.publish(this->sonar_image_raw_msg_);
+
+
+  // Construct visual sonar image for rqt plot in sensor::image msg format
+  cv_bridge::CvImage img_bridge;
+  // Calculate and allocate plot data
+  float Intensity[nBeams*4][nFreq];
+  for (size_t beam = 0; beam < nBeams*4; beam ++)
+  {
+    for (size_t f = 0; f < nFreq; f ++)
+    {
+      if (beam > 2.5*nBeams &&beam < 3.5*nBeams)
+        Intensity[beam][f] = (float)(abs(P_Beams[beam - 2.5*nBeams][f]));
+      else
+        Intensity[beam][f] = 0.0f;
+    }
+  }
+
+  // Generate image
+  cv::Mat Intensity_image(nBeams*4, nFreq, CV_32FC1, Intensity);
+
+  // Rescale
+  double minVal, maxVal;
+  cv::minMaxLoc(Intensity_image, &minVal, &maxVal);
+  Intensity_image -= minVal;
+  Intensity_image *= 1./(maxVal - minVal);
+
+  // Polar coordinate transform
+  cv::Mat Intensity_image_polar;
+  cv::Point2f center( (float)Intensity_image.cols/2.0, (float)Intensity_image.rows/2.0);
+  double maxRadius = cv::min(center.y, center.x);
+  cv::linearPolar(Intensity_image, Intensity_image_polar, center, maxRadius,
+                cv::INTER_LINEAR + cv::WARP_FILL_OUTLIERS + cv::WARP_INVERSE_MAP);
+
+  // Search for crop range
+  int top = 0, bottom = 0, left = 0, right = 0;
+  for (size_t i = 0; i < Intensity_image_polar.rows; i ++)
+  {
+    for (size_t j = 0; j < Intensity_image_polar.cols; j ++)
+    {
+      float data = Intensity_image_polar.at<float>(i, j);
+      if (data != 0) {top = i; break;}
+    }
+    if (top !=0) {break;}
+  }
+  for (size_t i = Intensity_image_polar.rows-1; i > 0; i --)
+  {
+    for (size_t j = Intensity_image_polar.cols-1; j > 0; j --)
+    {
+      float data = Intensity_image_polar.at<float>(i, j);
+      if (data != 0) {bottom = i; break;}
+    }
+    if (bottom !=0) {break;}
+  }
+  for (size_t j = 0; j < Intensity_image_polar.cols; j ++)
+  {
+    for (size_t i = 0; i < Intensity_image_polar.rows; i ++)
+    {
+      float data = Intensity_image_polar.at<float>(i, j);
+      if (data != 0) {left = j; break;}
+    }
+    if (left !=0) {break;}
+  }
+  for (size_t j = Intensity_image_polar.cols-1; j > 0; j --)
+  {
+    for (size_t i = Intensity_image_polar.rows-1; i > 0; i --)
+    {
+      float data = Intensity_image_polar.at<float>(i, j);
+      if (data != 0) {right = j; break;}
+    }
+    if (right !=0) {break;}
+  }
+
+  // Crop image
+  cv::Mat Intensity_image_polar_cropped = Intensity_image_polar(
+          cv::Rect(left, top, (float)(right-left), (float)(bottom-top)));
+
+  // Publish final sonar image
+  this->sonar_image_msg_.header.frame_id
+        = this->frame_name_;
+  this->sonar_image_msg_.header.stamp.sec
+        = this->depth_sensor_update_time_.sec;
+  this->sonar_image_msg_.header.stamp.nsec
+        = this->depth_sensor_update_time_.nsec;
+  img_bridge = cv_bridge::CvImage(this->sonar_image_msg_.header,
+                                  sensor_msgs::image_encodings::TYPE_32FC1,
+                                  Intensity_image_polar_cropped);
+  img_bridge.toImageMsg(this->sonar_image_msg_); // from cv_bridge to sensor_msgs::Image
 
   this->sonar_image_pub_.publish(this->sonar_image_msg_);
 
   // ---------------------------------------- End of sonar calculation
 
 
-  // Still publishing the depth image (just because)
+  // Still publishing the depth and normal image (just because)
+  // Depth image
   this->depth_image_msg_.header.frame_id
         = this->frame_name_;
   this->depth_image_msg_.header.stamp.sec
         = this->depth_sensor_update_time_.sec;
   this->depth_image_msg_.header.stamp.nsec
         = this->depth_sensor_update_time_.nsec;
-  cv_bridge::CvImage img_bridge;
   img_bridge = cv_bridge::CvImage(this->depth_image_msg_.header,
                                   sensor_msgs::image_encodings::TYPE_32FC1,
                                   depth_image);
   // from cv_bridge to sensor_msgs::Image
   img_bridge.toImageMsg(this->depth_image_msg_);
   this->depth_image_pub_.publish(this->depth_image_msg_);
+
+  // Normal image
+  this->normal_image_msg_.header.frame_id
+        = this->frame_name_;
+  this->normal_image_msg_.header.stamp.sec
+        = this->depth_sensor_update_time_.sec;
+  this->normal_image_msg_.header.stamp.nsec
+        = this->depth_sensor_update_time_.nsec;
+  cv::Mat normal_image8;
+  normal_image.convertTo(normal_image8, CV_8UC3, 255.0);
+  img_bridge = cv_bridge::CvImage(this->normal_image_msg_.header,
+                                  sensor_msgs::image_encodings::RGB8,
+                                  normal_image8);
+  img_bridge.toImageMsg(this->normal_image_msg_);
+  // from cv_bridge to sensor_msgs::Image
+  this->normal_image_pub_.publish(this->normal_image_msg_);
 
   this->lock_.unlock();
 }

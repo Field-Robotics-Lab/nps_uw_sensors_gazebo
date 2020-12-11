@@ -66,5 +66,6 @@ namespace NpsGazeboSonar
                                      double _attenuation,
                                      float *_window,
                                      float **_beamCorrector,
-                                     float _beamCorrectorSum);
+                                     float _beamCorrectorSum,
+                                     bool _debugFlag);
 } // namespace NpsGazeboSonar

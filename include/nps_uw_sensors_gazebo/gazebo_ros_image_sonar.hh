@@ -65,6 +65,9 @@ namespace gazebo
   typedef std::valarray<Complex> CArray;
   typedef std::valarray<CArray> CArray2D;
 
+  typedef std::valarray<float> Array;
+  typedef std::valarray<Array> Array2D;
+
   class NpsGazeboRosImageSonar : public SensorPlugin, GazeboRosCameraUtils
   {
     /// \brief Constructor
@@ -126,6 +129,7 @@ namespace gazebo
     private: int raySkips;
     private: int ray_nAzimuthRays;
     private: int ray_nElevationRays;
+    protected: bool debugFlag;
 
     /// \brief CSV log writing stream for verifications
     protected: std::ofstream writeLog;
@@ -138,23 +142,34 @@ namespace gazebo
     private: int depth_image_connect_count_;
     private: int depth_info_connect_count_;
     private: int point_cloud_connect_count_;
+    private: int sonar_image_connect_count_;
     private: void DepthImageConnect();
     private: void DepthImageDisconnect();
     private: void DepthInfoConnect();
     private: void DepthInfoDisconnect();
+    private: void NormalImageConnect();
+    private: void NormalImageDisconnect();
     private: void PointCloudConnect();
     private: void PointCloudDisconnect();
+    private: void SonarImageConnect();
+    private: void SonarImageDisconnect();
+    private: void SonarImageRawConnect();
+    private: void SonarImageRawDisconnect();
     private: common::Time last_depth_image_camera_info_update_time_;
 
     /// \brief A pointer to the ROS node.
     /// A node will be instantiated if it does not exist.
     private: ros::Publisher depth_image_pub_;
-    private: ros::Publisher sonar_image_pub_;
+    private: ros::Publisher normal_image_pub_;
     private: ros::Publisher point_cloud_pub_;
+    private: ros::Publisher sonar_image_raw_pub_;
+    private: ros::Publisher sonar_image_pub_;
 
     private: sensor_msgs::Image depth_image_msg_;
+    private: sensor_msgs::Image normal_image_msg_;
     private: sensor_msgs::PointCloud2 point_cloud_msg_;
-    private: imaging_sonar_msgs::SonarImage sonar_image_msg_;
+    private: imaging_sonar_msgs::SonarImage sonar_image_raw_msg_;
+    private: sensor_msgs::Image sonar_image_msg_;
     private: cv::Mat point_cloud_image_;
 
     std::default_random_engine generator;
@@ -166,6 +181,8 @@ namespace gazebo
     private: std::string depth_image_topic_name_;
     private: std::string depth_image_camera_info_topic_name_;
     private: std::string point_cloud_topic_name_;
+    private: std::string sonar_image_raw_topic_name_;
+    private: std::string sonar_image_topic_name_;
 
     private: double point_cloud_cutoff_;
 
@@ -185,6 +202,7 @@ namespace gazebo
     private: event::ConnectionPtr newDepthFrameConnection;
     private: event::ConnectionPtr newImageFrameConnection;
     private: event::ConnectionPtr newRGBPointCloudConnection;
+    private: event::ConnectionPtr newSonarImageConnection;
 
     // A couple of "convenience" functions for computing azimuth & elevation
     private: inline double Azimuth(int col)

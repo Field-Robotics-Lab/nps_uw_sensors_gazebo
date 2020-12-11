@@ -6,7 +6,7 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
-        - /PointCloud21
+        - /Image1
       Splitter Ratio: 0.5
     Tree Height: 638
   - Class: rviz/Selection
@@ -27,7 +27,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: PointCloud2
+    SyncSource: Image
   - Class: rviz/Displays
     Help Height: 70
     Name: Displays
@@ -68,7 +68,7 @@ Visualization Manager:
         Value: true
       Axis: Z
       Channel Name: intensity
-      Class: rviz/PointCloud2
+      Class: rviz/Image
       Color: 255; 255; 255
       Color Transformer: RGB8
       Decay Time: 0
@@ -78,14 +78,14 @@ Visualization Manager:
       Max Intensity: 4096
       Min Color: 0; 0; 0
       Min Intensity: 0
-      Name: PointCloud2
+      Name: SonarImage
       Position Transformer: XYZ
       Queue Size: 10
       Selectable: true
       Size (Pixels): 3
       Size (m): 0.009999999776482582
       Style: Flat Squares
-      Topic: /blueview_p900/point_cloud
+      Topic: /blueview_p900/imeage_sonar
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
