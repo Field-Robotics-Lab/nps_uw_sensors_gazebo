@@ -18,7 +18,7 @@ include_directories(${roscpp_INCLUDE_DIRS})
 include_directories(${std_msgs_INCLUDE_DIRS})
 include_directories(
   include
-  ${catkin_INCLUDE_DIRS} 
+  ${catkin_INCLUDE_DIRS}
   ${GAZEBO_INCLUDE_DIRS}
 )
 link_directories(${GAZEBO_LIBRARY_DIRS})
@@ -29,10 +29,10 @@ catkin_package()
 ## Plugins
 
 add_library(gazebo_ros_pulse_lidar_plugin src/gazebo_ros_pulse_lidar.cpp)
-target_link_libraries(gazebo_ros_pulse_lidar_plugin 
+target_link_libraries(gazebo_ros_pulse_lidar_plugin
                       ${GAZEBO_LIBRARIES} ${roscpp_LIBRARIES})
 
-add_library(nps_gazebo_ros_gpu_sonar_single_beam_plugin 
+add_library(nps_gazebo_ros_gpu_sonar_single_beam_plugin
             src/nps_gazebo_ros_gpu_sonar_single_beam.cpp)
 target_link_libraries(nps_gazebo_ros_gpu_sonar_single_beam_plugin
                       GpuRayPlugin ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES})
@@ -51,6 +51,8 @@ install(DIRECTORY launch
 # for Python scripts
 catkin_install_python(PROGRAMS
   scripts/depth_camera_sonar.py
+  scripts/sonar_ros.py
   src/simple_box_motion.py
   src/simple_motion.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+catkin_python_setup()
