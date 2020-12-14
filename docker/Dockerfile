@@ -108,12 +108,11 @@ RUN apt-get update \
         libnpp-dev-11-1=11.1.1.269-1 \
         cuda-libraries-dev-11-1=11.1.0-1 \
         cuda-minimal-build-11-1=11.1.0-1 \
-        libnccl-dev=2.7.8-1+cuda11.1 \
         libcublas-dev-11-1=11.2.1.74-1 \
         libcusparse-11-1=11.2.0.275-1 \
-        libcusparse-dev-11-1=11.2.0.275-1 \        
+        libcusparse-dev-11-1=11.2.0.275-1 \
     && apt-mark hold libnccl-dev \
-    && ln -s cuda-11.1 /usr/local/cuda 
+    && ln -s cuda-11.1 /usr/local/cuda
 
 # Required for nvidia-docker v1
 RUN echo "/usr/local/nvidia/lib" >> /etc/ld.so.conf.d/nvidia.conf && \
@@ -127,7 +126,6 @@ ENV LIBRARY_PATH /usr/local/cuda/lib64/stubs
 ENV NVIDIA_VISIBLE_DEVICES all
 ENV NVIDIA_DRIVER_CAPABILITIES all
 ENV NVIDIA_REQUIRE_CUDA "cuda>=11.1 brand=tesla,driver>=418,driver<419 brand=tesla,driver>=440,driver<441 brand=tesla,driver>=450,driver<451"
-
 
 # Set USER and GROUP
 ARG USER=developer
