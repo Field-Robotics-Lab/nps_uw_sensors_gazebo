@@ -1,12 +1,18 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.0.2)
 project(nps_uw_sensors_gazebo)
 
 ## Make sure you have installed CUDA and include in paths
 ## LD_LIBRARY_PATH=LD_LIBRARY_PATH:/usr/local/cuda-11.1/lib64
 ## PATH=$PATH:/usr/local/cuda-11.1/bin
 set(CMAKE_CUDA_COMPILER "nvcc")
-
 enable_language(CUDA CXX)
+
+if(NOT "${CMAKE_VERSION}" VERSION_LESS "3.16")
+    set(CMAKE_CXX_STANDARD 17)
+    set(CMAKE_CXX_STANDARD_REQUIRED ON)
+else()
+    add_compile_options(-std=c++11)
+endif()
 
 find_package(catkin REQUIRED COMPONENTS
  tf
@@ -84,5 +90,8 @@ install(DIRECTORY launch
         PATTERN "*~" EXCLUDE)
 
 # for Python scripts
-# catkin_install_python(PROGRAMS scripts/depth_camera_sonar.py
-#   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+catkin_install_python(PROGRAMS
+  scripts/depth_camera_sonar.py
+  src/simple_box_motion.py
+  src/simple_motion.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
