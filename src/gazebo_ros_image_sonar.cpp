@@ -661,20 +661,20 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
     azimuth_angles.push_back(atan2(static_cast<double>(beam) -
                     0.5 * static_cast<double>(width-1), fl));
   this->sonar_image_raw_msg_.azimuth_angles = azimuth_angles;
-  std::vector<float> elevation_angles;
-  elevation_angles.push_back(vFOV / 2.0);  // 1D in elevation
-  this->sonar_image_raw_msg_.elevation_angles = elevation_angles;
+  // std::vector<float> elevation_angles;
+  // elevation_angles.push_back(vFOV / 2.0);  // 1D in elevation
+  // this->sonar_image_raw_msg_.elevation_angles = elevation_angles;
   std::vector<float> ranges;
   for (size_t i = 0; i < P_Beams[0].size(); i ++)
     ranges.push_back(rangeVector[i]);
   this->sonar_image_raw_msg_.ranges = ranges;
 
   // this->sonar_image_raw_msg_.is_bigendian = false;
-  this->sonar_image_raw_msg_.data_size = sizeof(float)*2 * nFreq * nBeams;
+  this->sonar_image_raw_msg_.data_size = sizeof(float) * nFreq * nBeams;
   std::vector<uchar> intensities;
   for (size_t beam = 0; beam < nBeams; beam ++)
     for (size_t f = 0; f < nFreq; f ++)
-      intensities.push_back(static_cast<uchar>(abs(P_Beams[beam][f])));
+      intensities.push_back(static_cast<uchar>(static_cast<int>(abs(P_Beams[beam][f]))));
   this->sonar_image_raw_msg_.intensities = intensities;
 
   this->sonar_image_raw_pub_.publish(this->sonar_image_raw_msg_);

@@ -17,8 +17,6 @@
 
 #pragma once
 #include <cuda.h>
-#include "cuda_fp16.h"
-#include "device_functions.h"
 #include "cuda_runtime.h"
 #include "cuda_runtime_api.h"
 #include "device_launch_parameters.h"
@@ -35,7 +33,7 @@
 namespace NpsGazeboSonar
 {
 
-  typedef std::complex<int> Complex;
+  typedef std::complex<float> Complex;
   typedef std::valarray<Complex> CArray;
   typedef std::valarray<CArray> CArray2D;
 
