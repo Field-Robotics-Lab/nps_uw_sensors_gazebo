@@ -281,8 +281,6 @@ __global__ void sonar_calculation(thrust::complex<int> *P_Beams,
           thrust::complex<float>(kernel.real() , kernel.imag());
     }
   }
-  // Stopper for debugging
-  // asm("trap;");
 }
 
 __global__ void sumNND(float *devPtrIn, float *devPtrOut, const int N, const int M, const int D)
