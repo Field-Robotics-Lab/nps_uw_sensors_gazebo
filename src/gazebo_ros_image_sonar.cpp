@@ -672,8 +672,8 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
   // this->sonar_image_raw_msg_.is_bigendian = false;
   this->sonar_image_raw_msg_.data_size = 1; //sizeof(float) * nFreq * nBeams;
   std::vector<uchar> intensities;
-  for (size_t beam = 0; beam < nBeams; beam ++)
-    for (size_t f = 0; f < nFreq; f ++)
+  for (size_t f = 0; f < nFreq; f ++)
+    for (size_t beam = 0; beam < nBeams; beam ++)
       intensities.push_back(static_cast<uchar>(static_cast<int>(abs(P_Beams[beam][f]))));
   this->sonar_image_raw_msg_.intensities = intensities;
 
