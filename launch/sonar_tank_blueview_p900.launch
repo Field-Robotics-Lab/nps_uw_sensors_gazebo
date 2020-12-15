@@ -5,8 +5,7 @@
   </include>
 
   <!-- visualizations -->
-  <node name="rqt_images" pkg="rqt_gui" type="rqt_gui" output="screen" args = "--perspective-file $(find nps_uw_sensors_gazebo)/config/sonar_tank_blueview_p900_images.perspective" />
-  <!-- <node type="rviz" name="rviz" pkg="rviz" args="-d $(find nps_uw_sensors_gazebo)/config/sonar_tank_blueview_p900.rviz" /> -->
+  <!-- <node name="rqt_images" pkg="rqt_gui" type="rqt_gui" output="screen" args = "--perspective-file $(find nps_uw_sensors_gazebo)/config/sonar_tank_blueview_p900_images.perspective" /> -->
 
   <!-- rqt_image_view for image_raw_sonar -->
   <node name="rqt_image_view_sonar" pkg="rqt_image_view"
