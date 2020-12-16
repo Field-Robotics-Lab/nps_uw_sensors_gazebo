@@ -395,7 +395,6 @@ void NpsGazeboRosImageSonar::Advertise()
       ros::VoidPtr(), &this->camera_queue_);
   this->sonar_image_pub_ = this->rosnode_->advertise(sonar_image_ao);
 
-
   this->sonar_image_pub_ =
       this->rosnode_->advertise<sensor_msgs::Image>
       ("sonar_image", 10);

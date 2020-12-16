@@ -479,6 +479,7 @@ namespace NpsGazeboSonar
     }
 
     // free memory
+    cudaFreeHost(P_Beams);
     cudaFreeHost(P_Ray_real);
     cudaFreeHost(P_Ray_imag);
     cudaFreeHost(P_Ray_F_real);
@@ -724,6 +725,9 @@ namespace NpsGazeboSonar
     cufftDestroy(handle);
     cudaFree(deviceOutputData);
     cudaFree(deviceInputData);
+    free(hostInputData);
+    free(hostOutputData);
+
 
     for (int beam = 0; beam < BATCH; beam++)
     {
