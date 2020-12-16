@@ -129,6 +129,7 @@ namespace gazebo
     private: int raySkips;
     private: int ray_nAzimuthRays;
     private: int ray_nElevationRays;
+    private: int plotScaler;
     protected: bool debugFlag;
 
     /// \brief CSV log writing stream for verifications

@@ -230,6 +230,11 @@ void NpsGazeboRosImageSonar::Load(sensors::SensorPtr _parent,
   else
     this->raySkips =
       _sdf->GetElement("raySkips")->Get<int>();
+  if (!_sdf->HasElement("plotScaler"))
+    this->plotScaler = 1;
+  else
+    this->plotScaler =
+      _sdf->GetElement("plotScaler")->Get<int>();
   // Configure skips
   if (this->raySkips == 0) this->raySkips = 1;
 
@@ -682,77 +687,74 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
 
   // Construct visual sonar image for rqt plot in sensor::image msg format
   cv_bridge::CvImage img_bridge;
+
   // Calculate and allocate plot data
-  float Intensity[nBeams*4][nFreq];
-  for (size_t beam = 0; beam < nBeams*4; beam ++)
-  {
+  int Intensity[nBeams][nFreq];
+  for (size_t beam = 0; beam < nBeams; beam ++)
     for (size_t f = 0; f < nFreq; f ++)
-    {
-      if (beam > 2.5*nBeams &&beam < 3.5*nBeams)
-        Intensity[beam][f] = (float)(abs(P_Beams[beam - 2.5*nBeams][f]));
-      else
-        Intensity[beam][f] = 0.0f;
-    }
-  }
+        Intensity[beam][f] = static_cast<int>(abs(P_Beams[beam][f]));
 
-  // Generate image
-  cv::Mat Intensity_image(nBeams*4, nFreq, CV_32FC1, Intensity);
+  // Generate image of 16UC1
+  cv::Mat Intensity_image = cv::Mat::zeros(cv::Size(nBeams,nFreq), CV_16UC1);
 
-  // Rescale
-  double minVal, maxVal;
-  cv::minMaxLoc(Intensity_image, &minVal, &maxVal);
-  Intensity_image -= minVal;
-  Intensity_image *= 1./(maxVal - minVal);
+  const float rangeMax = maxDistance;
+  const float rangeRes = ranges[1]-ranges[0];
+  const int nEffectiveRanges = ceil(rangeMax / rangeRes);
+  const unsigned int radius = Intensity_image.size().height;
+  const cv::Point origin(Intensity_image.size().width/2, Intensity_image.size().height);
+  const float binThickness = 2 * ceil(radius / nEffectiveRanges);
 
-  // Polar coordinate transform
-  cv::Mat Intensity_image_polar;
-  cv::Point2f center( (float)Intensity_image.cols/2.0, (float)Intensity_image.rows/2.0);
-  double maxRadius = cv::min(center.y, center.x);
-  cv::linearPolar(Intensity_image, Intensity_image_polar, center, maxRadius,
-                cv::INTER_LINEAR + cv::WARP_FILL_OUTLIERS + cv::WARP_INVERSE_MAP);
-
-  // Search for crop range
-  int top = 0, bottom = 0, left = 0, right = 0;
-  for (size_t i = 0; i < Intensity_image_polar.rows; i ++)
+  struct BearingEntry
   {
-    for (size_t j = 0; j < Intensity_image_polar.cols; j ++)
-    {
-      float data = Intensity_image_polar.at<float>(i, j);
-      if (data != 0) {top = i; break;}
-    }
-    if (top !=0) {break;}
-  }
-  for (size_t i = Intensity_image_polar.rows-1; i > 0; i --)
+    float begin, center, end;
+    BearingEntry( float b, float c, float e )
+      : begin( b ), center(c), end(e)
+        {;}
+  };
+
+  std::vector<BearingEntry> angles;
+  angles.reserve( nBeams );
+
+  for ( int b = 0; b < nBeams; ++b )
   {
-    for (size_t j = Intensity_image_polar.cols-1; j > 0; j --)
+    const float center = azimuth_angles[b];
+    float begin = 0.0, end = 0.0;
+    if (b == 0)
     {
-      float data = Intensity_image_polar.at<float>(i, j);
-      if (data != 0) {bottom = i; break;}
+      end = (azimuth_angles[b + 1] + center) / 2.0;
+      begin = 2 * center - end;
     }
-    if (bottom !=0) {break;}
-  }
-  for (size_t j = 0; j < Intensity_image_polar.cols; j ++)
-  {
-    for (size_t i = 0; i < Intensity_image_polar.rows; i ++)
+    else if (b == nBeams - 1)
     {
-      float data = Intensity_image_polar.at<float>(i, j);
-      if (data != 0) {left = j; break;}
+      begin = angles[b - 1].end;
+      end = 2 * center - begin;
     }
-    if (left !=0) {break;}
-  }
-  for (size_t j = Intensity_image_polar.cols-1; j > 0; j --)
-  {
-    for (size_t i = Intensity_image_polar.rows-1; i > 0; i --)
+    else
     {
-      float data = Intensity_image_polar.at<float>(i, j);
-      if (data != 0) {right = j; break;}
+      begin = angles[b - 1].end;
+      end = (azimuth_angles[b + 1] + center) / 2.0;
     }
-    if (right !=0) {break;}
+    angles.push_back( BearingEntry(begin, center, end) );
   }
 
-  // Crop image
-  cv::Mat Intensity_image_polar_cropped = Intensity_image_polar(
-          cv::Rect(left, top, (float)(right-left), (float)(bottom-top)));
+  const float ThetaShift = 1.5*M_PI;
+  for ( int r = 0; r < ranges.size(); ++r )
+  {
+    if( ranges[r] > rangeMax ) continue;
+    for ( int b = 0; b < nBeams; ++b )
+    {
+      const float range = ranges[r];
+      const int intensity = Intensity[b][r];
+      const float begin = angles[b].begin + ThetaShift,
+                  end = angles[b].end + ThetaShift;
+      const float rad = float(radius) * range/rangeMax;
+      // Assume angles are in image frame x-right, y-down
+      cv::ellipse(Intensity_image, origin, cv::Size(rad, rad), 0,
+                  begin * 180/M_PI, end * 180/M_PI,
+                  intensity*256/5*this->plotScaler,
+                  binThickness);
+    }
+  }
 
   // Publish final sonar image
   this->sonar_image_msg_.header.frame_id
@@ -762,8 +764,8 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
   this->sonar_image_msg_.header.stamp.nsec
         = this->depth_sensor_update_time_.nsec;
   img_bridge = cv_bridge::CvImage(this->sonar_image_msg_.header,
-                                  sensor_msgs::image_encodings::TYPE_32FC1,
-                                  Intensity_image_polar_cropped);
+                                  sensor_msgs::image_encodings::MONO16,
+                                  Intensity_image);
   img_bridge.toImageMsg(this->sonar_image_msg_); // from cv_bridge to sensor_msgs::Image
 
   this->sonar_image_pub_.publish(this->sonar_image_msg_);
