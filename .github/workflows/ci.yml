@@ -61,11 +61,11 @@ jobs:
           repository: uuvsimulator/eca_a9
           path: eca_a9
 
-      - name: Checkout UW imaging_sonar_msgs
+      - name: Checkout UW APL acoustic_msgs
         uses: actions/checkout@v2
         with:
-          url: https://gitlab.com/apl-ocean-engineering/imaging_sonar_msgs.git
-          path: imaging_sonar_msgs
+          repository: apl-ocean-engineering/acoustic_msgs 
+          path: acoustic_msgs
 
       - name: Set up workspace
         run: |
