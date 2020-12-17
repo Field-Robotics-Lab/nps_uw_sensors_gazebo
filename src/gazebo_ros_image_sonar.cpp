@@ -380,7 +380,7 @@ void NpsGazeboRosImageSonar::Advertise()
 
   // Publisher for sonar image
   ros::AdvertiseOptions sonar_image_raw_ao =
-    ros::AdvertiseOptions::create<imaging_sonar_msgs::SonarImage>(
+    ros::AdvertiseOptions::create<acoustic_msgs::SonarImage>(
       this->sonar_image_raw_topic_name_, 1,
       boost::bind(&NpsGazeboRosImageSonar::SonarImageRawConnect, this),
       boost::bind(&NpsGazeboRosImageSonar::SonarImageRawDisconnect, this),

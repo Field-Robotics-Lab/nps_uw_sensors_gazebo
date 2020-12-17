@@ -17,7 +17,7 @@ endif()
 find_package(catkin REQUIRED COMPONENTS
  tf
  gazebo_plugins
- imaging_sonar_msgs)
+ acoustic_msgs)
 
 find_package(gazebo REQUIRED)
 find_package(roscpp REQUIRED)
@@ -43,7 +43,7 @@ catkin_package(
   INCLUDE_DIRS
   LIBRARIES
   CATKIN_DEPENDS
-  imaging_sonar_msgs
+  acoustic_msgs
  )
 
 ## Plugins
