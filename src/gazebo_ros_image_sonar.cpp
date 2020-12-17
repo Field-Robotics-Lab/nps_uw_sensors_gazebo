@@ -674,11 +674,12 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
   this->sonar_image_raw_msg_.ranges = ranges;
 
   // this->sonar_image_raw_msg_.is_bigendian = false;
-  this->sonar_image_raw_msg_.data_size = 1; //sizeof(float) * nFreq * nBeams;
+  this->sonar_image_raw_msg_.data_size = 1;  // sizeof(float) * nFreq * nBeams;
   std::vector<uchar> intensities;
   for (size_t f = 0; f < nFreq; f ++)
     for (size_t beam = 0; beam < nBeams; beam ++)
-      intensities.push_back(static_cast<uchar>(static_cast<int>(abs(P_Beams[beam][f]))));
+      intensities.push_back(
+          static_cast<uchar>(static_cast<int>(abs(P_Beams[beam][f]))));
   this->sonar_image_raw_msg_.intensities = intensities;
 
   this->sonar_image_raw_pub_.publish(this->sonar_image_raw_msg_);
@@ -694,25 +695,26 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
         Intensity[beam][f] = static_cast<int>(abs(P_Beams[beam][f]));
 
   // Generate image of 16UC1
-  cv::Mat Intensity_image = cv::Mat::zeros(cv::Size(nBeams,nFreq), CV_16UC1);
+  cv::Mat Intensity_image = cv::Mat::zeros(cv::Size(nBeams, nFreq), CV_16UC1);
 
   const float rangeMax = maxDistance;
   const float rangeRes = ranges[1]-ranges[0];
   const int nEffectiveRanges = ceil(rangeMax / rangeRes);
   const unsigned int radius = Intensity_image.size().height;
-  const cv::Point origin(Intensity_image.size().width/2, Intensity_image.size().height);
+  const cv::Point origin(Intensity_image.size().width/2,
+                         Intensity_image.size().height);
   const float binThickness = 2 * ceil(radius / nEffectiveRanges);
 
   struct BearingEntry
   {
     float begin, center, end;
-    BearingEntry( float b, float c, float e )
-      : begin( b ), center(c), end(e)
+    BearingEntry(float b, float c, float e)
+      : begin(b), center(c), end(e)
         {;}
   };
 
   std::vector<BearingEntry> angles;
-  angles.reserve( nBeams );
+  angles.reserve(nBeams);
 
   for ( int b = 0; b < nBeams; ++b )
   {
@@ -733,20 +735,20 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
       begin = angles[b - 1].end;
       end = (azimuth_angles[b + 1] + center) / 2.0;
     }
-    angles.push_back( BearingEntry(begin, center, end) );
+    angles.push_back(BearingEntry(begin, center, end));
   }
 
   const float ThetaShift = 1.5*M_PI;
   for ( int r = 0; r < ranges.size(); ++r )
   {
-    if( ranges[r] > rangeMax ) continue;
+    if ( ranges[r] > rangeMax ) continue;
     for ( int b = 0; b < nBeams; ++b )
     {
       const float range = ranges[r];
       const int intensity = Intensity[b][r];
       const float begin = angles[b].begin + ThetaShift,
                   end = angles[b].end + ThetaShift;
-      const float rad = float(radius) * range/rangeMax;
+      const float rad = static_cast<float>(radius) * range/rangeMax;
       // Assume angles are in image frame x-right, y-down
       cv::ellipse(Intensity_image, origin, cv::Size(rad, rad), 0,
                   begin * 180/M_PI, end * 180/M_PI,
@@ -765,7 +767,8 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
   img_bridge = cv_bridge::CvImage(this->sonar_image_msg_.header,
                                   sensor_msgs::image_encodings::MONO16,
                                   Intensity_image);
-  img_bridge.toImageMsg(this->sonar_image_msg_); // from cv_bridge to sensor_msgs::Image
+  // from cv_bridge to sensor_msgs::Image
+  img_bridge.toImageMsg(this->sonar_image_msg_);
 
   this->sonar_image_pub_.publish(this->sonar_image_msg_);
 
