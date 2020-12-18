@@ -60,6 +60,12 @@ target_link_libraries(nps_image_sonar_ros_plugin
 add_dependencies(nps_image_sonar_ros_plugin ${catkin_EXPORTED_TARGETS})
 list(APPEND SENSOR_ROS_PLUGINS_LIST nps_image_sonar_ros_plugin)
 
+#add_library(nps_gazebo_ros_image_sonar_plugin
+#            src/gazebo_ros_image_sonar.cpp
+#            include/nps_uw_sensors_gazebo/gazebo_ros_image_sonar.hh)
+#target_link_libraries(nps_gazebo_ros_image_sonar_plugin
+#                      DepthCameraPlugin ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES})
+
 #add_library(nps_gazebo_ros_gpu_sonar_single_beam_plugin
 #            src/nps_gazebo_ros_gpu_sonar_single_beam.cpp)
 #target_link_libraries(nps_gazebo_ros_gpu_sonar_single_beam_plugin
