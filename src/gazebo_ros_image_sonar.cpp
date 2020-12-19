@@ -489,6 +489,7 @@ void NpsGazeboRosImageSonar::OnNewDepthFrame(const float *_image,
     // Deactivate if no subscribers
     if (this->depth_image_connect_count_ <= 0 &&
         this->point_cloud_connect_count_ <= 0 &&
+        this->sonar_image_connect_count_ <= 0 &&
         (*this->image_connect_count_) <= 0)
     {
       this->parentSensor->SetActive(false);
@@ -500,7 +501,8 @@ void NpsGazeboRosImageSonar::OnNewDepthFrame(const float *_image,
       this->ComputePointCloud(_image);
 
       // Generate sonar image data if topics have subscribers
-      if (this->depth_image_connect_count_ > 0)
+      if (this->depth_image_connect_count_ > 0 ||
+          this->sonar_image_connect_count_ > 0) {
         this->ComputeSonarImage(_image);
     }
   }
