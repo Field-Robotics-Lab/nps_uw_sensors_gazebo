@@ -67,7 +67,6 @@ NpsGazeboRosImageSonar::~NpsGazeboRosImageSonar()
   this->newDepthFrameConnection.reset();
   this->newImageFrameConnection.reset();
   this->newRGBPointCloudConnection.reset();
-  this->newSonarImageConnection.reset();
 
   this->parentSensor.reset();
   this->depthCamera.reset();
@@ -106,13 +105,6 @@ void NpsGazeboRosImageSonar::Load(sensors::SensorPtr _parent,
   this->newImageFrameConnection =
     this->depthCamera->ConnectNewImageFrame(
         std::bind(&NpsGazeboRosImageSonar::OnNewImageFrame,
-                  this, std::placeholders::_1, std::placeholders::_2,
-                  std::placeholders::_3, std::placeholders::_4,
-                  std::placeholders::_5));
-
-  this->newSonarImageConnection =
-    this->depthCamera->ConnectNewDepthFrame(
-        std::bind(&NpsGazeboRosImageSonar::OnNewDepthFrame,
                   this, std::placeholders::_1, std::placeholders::_2,
                   std::placeholders::_3, std::placeholders::_4,
                   std::placeholders::_5));
@@ -191,8 +183,6 @@ void NpsGazeboRosImageSonar::Load(sensors::SensorPtr _parent,
     gzerr << _sdf->GetElement("clip")->GetElement("far")->Get<double>()
           << std::endl;
   }
-
-  // TODO: Implement additional SDF options (ROS namespaces & topics) here
 
   // Read sonar properties from model.sdf
   if (!_sdf->HasElement("sonarFreq"))
@@ -382,22 +372,18 @@ void NpsGazeboRosImageSonar::Advertise()
   ros::AdvertiseOptions sonar_image_raw_ao =
     ros::AdvertiseOptions::create<acoustic_msgs::SonarImage>(
       this->sonar_image_raw_topic_name_, 1,
-      boost::bind(&NpsGazeboRosImageSonar::SonarImageRawConnect, this),
-      boost::bind(&NpsGazeboRosImageSonar::SonarImageRawDisconnect, this),
+      boost::bind(&NpsGazeboRosImageSonar::DepthImageConnect, this),
+      boost::bind(&NpsGazeboRosImageSonar::DepthImageDisconnect, this),
       ros::VoidPtr(), &this->camera_queue_);
   this->sonar_image_raw_pub_ = this->rosnode_->advertise(sonar_image_raw_ao);
 
   ros::AdvertiseOptions sonar_image_ao =
     ros::AdvertiseOptions::create<sensor_msgs::Image>(
       this->sonar_image_topic_name_, 1,
-      boost::bind(&NpsGazeboRosImageSonar::SonarImageConnect, this),
-      boost::bind(&NpsGazeboRosImageSonar::SonarImageDisconnect, this),
+      boost::bind(&NpsGazeboRosImageSonar::DepthImageConnect, this),
+      boost::bind(&NpsGazeboRosImageSonar::DepthImageDisconnect, this),
       ros::VoidPtr(), &this->camera_queue_);
   this->sonar_image_pub_ = this->rosnode_->advertise(sonar_image_ao);
-
-  this->sonar_image_pub_ =
-      this->rosnode_->advertise<sensor_msgs::Image>
-      ("sonar_image", 10);
 }
 
 
@@ -453,24 +439,6 @@ void NpsGazeboRosImageSonar::PointCloudDisconnect()
   if (this->point_cloud_connect_count_ <= 0)
     this->parentSensor->SetActive(false);
 }
-void NpsGazeboRosImageSonar::SonarImageConnect()
-{
-  this->sonar_image_connect_count_++;
-  this->parentSensor->SetActive(true);
-}
-void NpsGazeboRosImageSonar::SonarImageDisconnect()
-{
-  this->sonar_image_connect_count_--;
-}
-void NpsGazeboRosImageSonar::SonarImageRawConnect()
-{
-  this->sonar_image_connect_count_++;
-  this->parentSensor->SetActive(true);
-}
-void NpsGazeboRosImageSonar::SonarImageRawDisconnect()
-{
-  this->sonar_image_connect_count_--;
-}
 
 // Update everything when Gazebo provides a new depth frame (texture)
 void NpsGazeboRosImageSonar::OnNewDepthFrame(const float *_image,
@@ -489,31 +457,22 @@ void NpsGazeboRosImageSonar::OnNewDepthFrame(const float *_image,
     // Deactivate if no subscribers
     if (this->depth_image_connect_count_ <= 0 &&
         this->point_cloud_connect_count_ <= 0 &&
-        this->sonar_image_connect_count_ <= 0 &&
         (*this->image_connect_count_) <= 0)
     {
       this->parentSensor->SetActive(false);
     }
     else
     {
-      // Generate a point cloud every time regardless of subscriptions
-      // for use in sonar computation (published in function if needed)
       this->ComputePointCloud(_image);
 
-      // Generate sonar image data if topics have subscribers
-      if (this->depth_image_connect_count_ > 0 ||
-          this->sonar_image_connect_count_ > 0) {
+      if (this->depth_image_connect_count_ > 0)
         this->ComputeSonarImage(_image);
     }
   }
   else
   {
-    // Won't this just toggle on and off unnecessarily?
-    // TODO: Find a better way to ensure it runs once after activation
     if (this->depth_image_connect_count_ <= 0 ||
         this->point_cloud_connect_count_ > 0)
-      // do this first so there's chance for sensor
-      // to run 1 frame after activate
       this->parentSensor->SetActive(true);
   }
 }

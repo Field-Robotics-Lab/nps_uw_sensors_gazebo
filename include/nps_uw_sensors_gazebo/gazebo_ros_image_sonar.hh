@@ -152,10 +152,6 @@ namespace gazebo
     private: void NormalImageDisconnect();
     private: void PointCloudConnect();
     private: void PointCloudDisconnect();
-    private: void SonarImageConnect();
-    private: void SonarImageDisconnect();
-    private: void SonarImageRawConnect();
-    private: void SonarImageRawDisconnect();
     private: common::Time last_depth_image_camera_info_update_time_;
 
     /// \brief A pointer to the ROS node.
@@ -203,7 +199,6 @@ namespace gazebo
     private: event::ConnectionPtr newDepthFrameConnection;
     private: event::ConnectionPtr newImageFrameConnection;
     private: event::ConnectionPtr newRGBPointCloudConnection;
-    private: event::ConnectionPtr newSonarImageConnection;
 
     // A couple of "convenience" functions for computing azimuth & elevation
     private: inline double Azimuth(int col)
