@@ -504,6 +504,7 @@ void NpsGazeboRosImageSonar::OnNewDepthFrame(const float *_image,
       if (this->depth_image_connect_count_ > 0 ||
           this->sonar_image_connect_count_ > 0) {
         this->ComputeSonarImage(_image);
+      }
     }
   }
   else
