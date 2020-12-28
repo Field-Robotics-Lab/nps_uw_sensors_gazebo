@@ -63,7 +63,8 @@
           <maxDistance>10</maxDistance>
           <constantReflectivity>true</constantReflectivity>
           <raySkips>10</raySkips>
-          <plotScaler>1</plotScaler>
+          <sensorGain>0.02</sensorGain>
+          <plotScaler>10</plotScaler>
           <writeLog>false</writeLog>
           <debugFlag>false</debugFlag>
           <writeFrameInterval>5</writeFrameInterval>

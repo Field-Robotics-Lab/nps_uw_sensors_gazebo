@@ -221,10 +221,15 @@ void NpsGazeboRosImageSonar::Load(sensors::SensorPtr _parent,
     this->raySkips =
       _sdf->GetElement("raySkips")->Get<int>();
   if (!_sdf->HasElement("plotScaler"))
-    this->plotScaler = 1;
+    this->plotScaler = 10;
   else
     this->plotScaler =
       _sdf->GetElement("plotScaler")->Get<int>();
+  if (!_sdf->HasElement("sensorGain"))
+    this->sensorGain = 0.02;
+  else
+    this->sensorGain =
+      _sdf->GetElement("sensorGain")->Get<float>();
   // Configure skips
   if (this->raySkips == 0) this->raySkips = 1;
 
@@ -637,10 +642,16 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
   // this->sonar_image_raw_msg_.is_bigendian = false;
   this->sonar_image_raw_msg_.data_size = 1;  // sizeof(float) * nFreq * nBeams;
   std::vector<uchar> intensities;
+  int Intensity[nBeams][nFreq];
   for (size_t f = 0; f < nFreq; f ++)
+  {
     for (size_t beam = 0; beam < nBeams; beam ++)
-      intensities.push_back(
-          static_cast<uchar>(static_cast<int>(abs(P_Beams[beam][f]))));
+    {
+      Intensity[beam][f] = static_cast<int>(this->sensorGain * abs(P_Beams[beam][f]));
+      uchar counts = static_cast<uchar>(std::min(UCHAR_MAX, Intensity[beam][f]));
+      intensities.push_back(counts);
+    }
+  }
   this->sonar_image_raw_msg_.intensities = intensities;
 
   this->sonar_image_raw_pub_.publish(this->sonar_image_raw_msg_);
@@ -648,12 +659,6 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
 
   // Construct visual sonar image for rqt plot in sensor::image msg format
   cv_bridge::CvImage img_bridge;
-
-  // Calculate and allocate plot data
-  int Intensity[nBeams][nFreq];
-  for (size_t beam = 0; beam < nBeams; beam ++)
-    for (size_t f = 0; f < nFreq; f ++)
-        Intensity[beam][f] = static_cast<int>(abs(P_Beams[beam][f]));
 
   // Generate image of 16UC1
   cv::Mat Intensity_image = cv::Mat::zeros(cv::Size(nBeams, nFreq), CV_16UC1);
@@ -713,7 +718,7 @@ void NpsGazeboRosImageSonar::ComputeSonarImage(const float *_src)
       // Assume angles are in image frame x-right, y-down
       cv::ellipse(Intensity_image, origin, cv::Size(rad, rad), 0,
                   begin * 180/M_PI, end * 180/M_PI,
-                  intensity*256/5*this->plotScaler,
+                  intensity*256*this->plotScaler,
                   binThickness);
     }
   }

@@ -130,6 +130,7 @@ namespace gazebo
     private: int ray_nAzimuthRays;
     private: int ray_nElevationRays;
     private: int plotScaler;
+    private: float sensorGain;
     protected: bool debugFlag;
 
     /// \brief CSV log writing stream for verifications
