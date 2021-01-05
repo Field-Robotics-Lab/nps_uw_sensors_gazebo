@@ -41,6 +41,7 @@ RUN apt-get update \
         gnupg2 \
         curl \
         ca-certificates \
+        module-init-tools \
  && apt-get clean
 
 RUN export DEBIAN_FRONTEND=noninteractive \
@@ -94,25 +95,26 @@ ENV NCCL_VERSION 2.7.8
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        nvidia-cuda-toolkit \
-        cuda-cudart-11-1=11.1.74-1 \
-        cuda-compat-11-1 \
-        pkg-config \
-        libglvnd-dev libglvnd-dev:i386 \
-        libgl1-mesa-dev libgl1-mesa-dev:i386 \
-        libegl1-mesa-dev libegl1-mesa-dev:i386 \
-        libgles2-mesa-dev libgles2-mesa-dev:i386 \
-        cuda-nvml-dev-11-1=11.1.74-1 \
-        cuda-command-line-tools-11-1=11.1.0-1 \
-        cuda-nvprof-11-1=11.1.69-1 \
-        libnpp-dev-11-1=11.1.1.269-1 \
-        cuda-libraries-dev-11-1=11.1.0-1 \
-        cuda-minimal-build-11-1=11.1.0-1 \
-        libcublas-dev-11-1=11.2.1.74-1 \
-        libcusparse-11-1=11.2.0.275-1 \
-        libcusparse-dev-11-1=11.2.0.275-1 \
+    cuda-cudart-11-1=11.1.74-1 \
+    cuda-compat-11-1 \
+    cuda-libraries-11-1=11.1.1-1 \
+    libnpp-11-1=11.1.2.301-1 \
+    cuda-nvtx-11-1=11.1.74-1 \
+    libcublas-11-1=11.3.0.106-1 \
+    libnccl2=$NCCL_VERSION-1+cuda11.1 \
+    cuda-nvml-dev-11-1=11.1.74-1 \
+    cuda-command-line-tools-11-1=11.1.1-1 \
+    cuda-nvprof-11-1=11.1.105-1 \
+    libnpp-dev-11-1=11.1.2.301-1 \
+    cuda-libraries-dev-11-1=11.1.1-1 \
+    cuda-minimal-build-11-1=11.1.1-1 \
+    libnccl-dev=2.7.8-1+cuda11.1 \
+    libcublas-dev-11-1=11.3.0.106-1 \
+    libcusparse-11-1=11.3.0.10-1 \
+    libcusparse-dev-11-1=11.3.0.10-1 \
     && apt-mark hold libnccl-dev \
-    && ln -s cuda-11.1 /usr/local/cuda
+    && ln -s cuda-11.1 /usr/local/cuda && \
+    rm -rf /var/lib/apt/lists/*
 
 # Required for nvidia-docker v1
 RUN echo "/usr/local/nvidia/lib" >> /etc/ld.so.conf.d/nvidia.conf && \
