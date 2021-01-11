@@ -25,6 +25,12 @@ jobs:
           repository: Field-Robotics-Lab/gtri_based_sonar
           path: gtri_based_sonar
 
+      - name: Checkout UW APL acoustic_msgs
+        uses: actions/checkout@v2
+        with:
+          repository: apl-ocean-engineering/acoustic_msgs 
+          path: acoustic_msgs
+
       - name: Checkout nps underwater sensors
         uses: actions/checkout@v2
         with:
@@ -60,12 +66,6 @@ jobs:
         with:
           repository: uuvsimulator/eca_a9
           path: eca_a9
-
-      - name: Checkout UW APL acoustic_msgs
-        uses: actions/checkout@v2
-        with:
-          repository: apl-ocean-engineering/acoustic_msgs 
-          path: acoustic_msgs
 
       - name: Set up workspace
         run: |
