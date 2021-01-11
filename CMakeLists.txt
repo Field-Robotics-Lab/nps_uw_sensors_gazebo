@@ -17,7 +17,8 @@ endif()
 find_package(catkin REQUIRED COMPONENTS
  tf
  gazebo_plugins
- acoustic_msgs)
+ acoustic_msgs
+)
 
 find_package(gazebo REQUIRED)
 find_package(roscpp REQUIRED)
@@ -44,11 +45,9 @@ catkin_package(
   INCLUDE_DIRS
   LIBRARIES
   CATKIN_DEPENDS
-  acoustic_msgs
  )
 
 ## Plugins
-
 add_library(nps_image_sonar_ros_plugin
             src/gazebo_ros_image_sonar.cpp
             src/sonar_calculation_cuda.cu)
@@ -60,23 +59,6 @@ target_link_libraries(nps_image_sonar_ros_plugin
                       ${CUDA_CUFFT_LIBRARIES})
 add_dependencies(nps_image_sonar_ros_plugin ${catkin_EXPORTED_TARGETS})
 list(APPEND SENSOR_ROS_PLUGINS_LIST nps_image_sonar_ros_plugin)
-
-#add_library(nps_gazebo_ros_image_sonar_plugin
-#            src/gazebo_ros_image_sonar.cpp
-#            include/nps_uw_sensors_gazebo/gazebo_ros_image_sonar.hh)
-#target_link_libraries(nps_gazebo_ros_image_sonar_plugin
-#                      DepthCameraPlugin ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES})
-
-#add_library(nps_gazebo_ros_gpu_sonar_single_beam_plugin
-#            src/nps_gazebo_ros_gpu_sonar_single_beam.cpp)
-#target_link_libraries(nps_gazebo_ros_gpu_sonar_single_beam_plugin
-#                      GpuRayPlugin ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES})
-
-#add_library(nps_gazebo_ros_depth_camera_sonar_single_beam_plugin
-#            src/nps_gazebo_ros_depth_camera_sonar_single_beam.cpp
-#            include/nps_uw_sensors_gazebo/nps_gazebo_ros_depth_camera_sonar_single_beam.hh)
-#target_link_libraries(nps_gazebo_ros_depth_camera_sonar_single_beam_plugin
-#                      DepthCameraPlugin ${catkin_LIBRARIES})
 
 # Install plugins
 install(
@@ -92,7 +74,6 @@ install(DIRECTORY launch
 
 # for Python scripts
 catkin_install_python(PROGRAMS
-  scripts/depth_camera_sonar.py
   src/simple_box_motion.py
   src/simple_motion.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
