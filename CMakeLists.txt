@@ -20,6 +20,7 @@ find_package(catkin REQUIRED COMPONENTS
  acoustic_msgs
 )
 
+find_package(acoustic_msgs REQUIRED)
 find_package(gazebo REQUIRED)
 find_package(roscpp REQUIRED)
 find_package(std_msgs REQUIRED)
@@ -45,7 +46,8 @@ catkin_package(
   INCLUDE_DIRS
   LIBRARIES
   CATKIN_DEPENDS
- )
+  acoustic_msgs
+)
 
 ## Plugins
 add_library(nps_image_sonar_ros_plugin
