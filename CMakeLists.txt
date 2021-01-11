@@ -41,7 +41,7 @@ set(SENSOR_ROS_PLUGINS_LIST "")
 include_directories(${acoustic_msgs_DIRS})
 
 catkin_package(
-  INCLUDE_DIRS
+  INCLUDE_DIRS include
   LIBRARIES
   CATKIN_DEPENDS
   acoustic_msgs
