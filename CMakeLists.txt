@@ -20,7 +20,6 @@ find_package(catkin REQUIRED COMPONENTS
  acoustic_msgs
 )
 
-find_package(acoustic_msgs REQUIRED)
 find_package(gazebo REQUIRED)
 find_package(roscpp REQUIRED)
 find_package(std_msgs REQUIRED)
@@ -44,6 +43,7 @@ set(SENSOR_ROS_PLUGINS_LIST "")
 
 catkin_package(
   INCLUDE_DIRS
+  acoustic_msgs
   LIBRARIES
   CATKIN_DEPENDS
   acoustic_msgs
