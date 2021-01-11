@@ -24,11 +24,7 @@ find_package(gazebo REQUIRED)
 find_package(roscpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(OpenCV REQUIRED)
-
 find_package(CUDA REQUIRED)
-include_directories(${CUDA_INCLUDE_DIRS})
-set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -arch=sm_60")
-
 include_directories(${roscpp_INCLUDE_DIRS})
 include_directories(${std_msgs_INCLUDE_DIRS})
 include_directories(${OpenCV_INCLUDE_DIRS})
@@ -38,12 +34,14 @@ include_directories(
   ${GAZEBO_INCLUDE_DIRS}
 )
 link_directories(${GAZEBO_LIBRARY_DIRS})
+include_directories(${CUDA_INCLUDE_DIRS})
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -arch=sm_60")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GAZEBO_CXX_FLAGS}")
 set(SENSOR_ROS_PLUGINS_LIST "")
+include_directories(${acoustic_msgs_INCLUDE_DIRS})
 
 catkin_package(
   INCLUDE_DIRS
-  acoustic_msgs
   LIBRARIES
   CATKIN_DEPENDS
   acoustic_msgs
