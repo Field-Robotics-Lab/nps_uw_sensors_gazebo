@@ -28,10 +28,10 @@
       <static>true</static>
     </include>
 
-    <!-- SeaBat F50 -->
+    <!-- Blueview P900 -->
     <include>
-      <uri>model://seabat_f50</uri>
-      <name>seabat_f50</name>
+      <uri>model://blueview_p900_nps_multibeam</uri>
+      <name>blueview_p900</name>
       <pose>2.1 1.0 1.0 0 0 1.5709</pose>
       <static>true</static>
     </include>

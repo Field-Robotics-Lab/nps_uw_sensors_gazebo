@@ -1,51 +1,52 @@
 <?xml version="1.0" ?>
 <sdf version="1.6">
-  <model name="blueview_p900">
+  <model name="SeaBat-F50 FLS">
     <link name="forward_sonar_link">
       <inertial>
-        <pose>0 0 0 0 0 0</pose>
-        <mass>4.35</mass>
+        <pose>0 0 0 0 0 1.570796</pose>
+        <mass>8.2</mass>
         <inertia>
-          <ixx>0.0360</ixx> <!-- 1/12ml^2 -->
+          <ixx>0.151702733</ixx>
           <ixy>0</ixy>
           <ixz>0</ixz>
-          <iyy>0</iyy>
+          <iyy>0.012730835</iyy>
           <iyz>0</iyz>
-          <izz>0.0360</izz>
+          <izz>0.150214768</izz>
         </inertia>
       </inertial>
       <collision name="collision">
+        <pose>0 0 0 0 0 1.570796</pose>
         <geometry>
-          <mesh>
-            <uri>model://blueview_p900/meshes/COLLISION-p900.dae</uri>
-          </mesh>
+          <box>
+            <size>0.46 0.0907 0.102</size>
+          </box>
         </geometry>
       </collision>
       <visual name="visual">
+        <pose>0 0 0 0 1.570796 0</pose>
         <geometry>
           <mesh>
-            <uri>model://blueview_p900/meshes/p900.dae</uri>
+            <uri>model://seabat_f50_nps_multibeam/meshes/SeaBat-F50.dae</uri>
           </mesh>
         </geometry>
       </visual>
 
-      <sensor name="image_sonar" type="depth">
+      <sensor name="multibeam_sonar" type="depth">
         <visualize>true</visualize>
         <always_on>true</always_on>
-        <update_rate>10</update_rate>
+        <update_rate>15</update_rate>
         <camera>
-          <!-- 90 degrees for the M900-90 -->
-          <horizontal_fov>1.57079632679</horizontal_fov>
+          <!-- 140 degrees -->
+          <horizontal_fov>2.44346</horizontal_fov>
           <image>
-            <width>512</width>
+            <width>256</width>
             <!-- Set vertical FOV by setting image height -->
-            <!-- For 20 deg. -->
-            <height>114</height>
+            <height>1</height>
             <format>R8G8B8</format>
           </image>
           <clip>
-            <near>02</near> <!-- optimal 2m-60m -->
-            <far>60</far>
+            <near>2</near>            <!-- not defined -->
+            <far>250</far>
           </clip>
           <depth_camera>
             <output>depths</output>
@@ -54,22 +55,22 @@
             <path>/tmp/camera</path>
           </save>
         </camera>
-        <plugin filename="libnps_image_sonar_ros_plugin.so" name="forward_sonar">
+        <plugin filename="libnps_multibeam_sonar_ros_plugin.so" name="forward_sonar">
           <!-- Sonar properties -->
-          <sonarFreq>900e3</sonarFreq>
+          <sonarFreq>400e3</sonarFreq>
           <bandwidth>29.9e3</bandwidth>
           <soundSpeed>1500</soundSpeed>
           <sourceLevel>220</sourceLevel>
           <maxDistance>10</maxDistance>
           <constantReflectivity>true</constantReflectivity>
-          <raySkips>10</raySkips>
+          <raySkips>1</raySkips>
           <sensorGain>0.02</sensorGain>
           <plotScaler>10</plotScaler>
           <writeLog>false</writeLog>
           <debugFlag>false</debugFlag>
           <writeFrameInterval>5</writeFrameInterval>
           <!-- This name is prepended to ROS topics -->
-          <cameraName>blueview_p900</cameraName>
+          <cameraName>seabat_f50</cameraName>
           <!-- ROS publication topics -->
           <imageTopicName>image_raw</imageTopicName>
           <cameraInfoTopicName>image_raw/camera_info</cameraInfoTopicName>
