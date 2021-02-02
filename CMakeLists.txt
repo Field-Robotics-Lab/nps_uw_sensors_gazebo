@@ -36,6 +36,9 @@ catkin_package(
  )
 
 ## Plugins
+add_library(gazebo_ros_pulse_lidar_plugin src/gazebo_ros_pulse_lidar.cpp)
+target_link_libraries(gazebo_ros_pulse_lidar_plugin 
+                      ${GAZEBO_LIBRARIES} ${roscpp_LIBRARIES})
 
 # Install plugins
 install(
