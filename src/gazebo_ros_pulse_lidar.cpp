@@ -55,6 +55,17 @@ namespace gazebo
      // Store the model pointer for convenience.
      this->model = _model;
 
+     // Check whether a particular lidar namespace has been specified
+     // if not, default to uwl
+     string ns = "uwl";
+     string suffix = "";
+     if (_sdf->HasElement("robot_namespace"))
+     {
+       ns = _sdf->Get<string>("robot_namespace");
+       ROS_INFO_NAMED("pulse_lidar", "namespace = %s", robot_namespace);
+     }
+
+
      // Get the joints
      this->pan_joint = this->model->GetJoint("uwl/uwl_base_swivel_joint");
      this->tilt_joint = this->model->GetJoint("uwl/uwl_swivel_tray_joint");
@@ -92,6 +103,7 @@ namespace gazebo
        ROS_INFO_NAMED("pulse_lidar", "tilt_position = %f", tilt_position);
      }
 
+     
      // Set the joints' target positions.
      this->model->GetJointController()->SetPositionTarget(
          this->pan_joint->GetScopedName(), pan_position);
