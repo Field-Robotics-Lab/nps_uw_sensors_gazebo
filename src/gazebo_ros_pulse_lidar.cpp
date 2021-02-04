@@ -102,7 +102,6 @@ namespace gazebo
        ROS_INFO_NAMED("pulse_lidar", "tilt_position = %f", tilt_position);
      }
 
-     
      // Set the joints' target positions.
      this->model->GetJointController()->SetPositionTarget(
          this->pan_joint->GetScopedName(), pan_position);
