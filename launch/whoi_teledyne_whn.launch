@@ -17,7 +17,7 @@
   </include>
 
   <!-- Load and spawn the model, starts the joint & state publishers, make the model move -->
-  <include file="$(find nps_uw_sensors_gazebo)/launch/upload_whoi_teledyne_whn.xml" /> 
+  <param name="whoi_teledyne_whn" command="$(find xacro)/xacro $(find nps_uw_sensors_gazebo)/urdf/whoi_teledyne_whn_robot.xacro" />
   <param name="model_name" type="str" value="whoi_teledyne_whn"/>
   <param name="base_link_name" type="str" value="robot_base_link"/>
   <node name="spawn_whn" pkg="gazebo_ros" type="spawn_model"
