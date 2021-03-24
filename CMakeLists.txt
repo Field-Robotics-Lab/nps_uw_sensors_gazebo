@@ -57,6 +57,11 @@ install(DIRECTORY urdf
         DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
         PATTERN "*~" EXCLUDE)
 
+# for models
+install(DIRECTORY models
+        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+        PATTERN "*~" EXCLUDE)
+
 # for Python scripts
 catkin_install_python(PROGRAMS
   src/simple_box_motion.py
